@@ -1,0 +1,15 @@
+*.ipynb
+test.py
+test.txt
+**/__pycache__/
+.DS_Store
+*.yaml
+*.session
+*.json
+/jsons
+/logs
+/session
+*.sh
+/data
+/old_logs
+/dump

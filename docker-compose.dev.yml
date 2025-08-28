@@ -1,0 +1,99 @@
+services:
+  # Redis service for FSM, users, and temp storage
+  redis:
+    image: redis:8.2-alpine
+    container_name: studybuddybot-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - studybuddybot-network
+
+  # Main bot application
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: studybuddybot-dev
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      # Mount logs directory
+      - ./logs:/app/logs
+      # Mount media directory for user files
+      - ./media:/app/media
+    ports:
+      - "8000:8000"  # For potential web interface
+    environment:
+      # Python environment
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      
+      # Redis configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LANGGRAPH_REDIS_URL=redis://redis:6379
+      
+      # OpenAI configuration (from config.yaml)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
+      
+      # Bot configuration (from config.yaml)
+      - BOT_TOKEN=${BOT_TOKEN:-7547512356:AAHK_L2lN9w3B4Yp72Tx4clu3iIrMzA2Uj4}
+      - BOT_ID=${BOT_ID:-7547512356}
+      - BOT_NAME=${BOT_NAME:-TestPhystechBot}
+      
+      # System configuration
+      - TIME_ZONE=${TIME_ZONE:-Europe/Moscow}
+      
+      # Development flags
+      - DEBUG=true
+      - DEVELOPMENT=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for Redis to be ready...' &&
+        while ! redis-cli -h redis ping > /dev/null 2>&1; do
+          sleep 1
+        done &&
+        echo 'Redis is ready!' &&
+        echo 'Starting bot in development mode...' &&
+        python bot.py
+      "
+    restart: unless-stopped
+    networks:
+      - studybuddybot-network
+
+  # Optional: Redis Commander for Redis management (web UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: studybuddybot-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - studybuddybot-network
+    profiles:
+      - tools  # Only start when explicitly requested
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  studybuddybot-network:
+    driver: bridge
