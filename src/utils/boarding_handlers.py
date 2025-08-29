@@ -1,11 +1,16 @@
 from typing import Any, TYPE_CHECKING
 
+import os
+import asyncio
+import logging
+
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.fsm.state import State
+
 
 from ..enums import Database, Action
 from ..states import Onboarding
@@ -60,6 +65,8 @@ async def on_approve(callback: CallbackQuery, button: Button, dialog_manager: Di
     await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
     await add_action(dialog_manager, Action.ONBOARDING)
 
+    os.makedirs(f"media/{callback.from_user.id}/onboarding", exist_ok=True)
+
     await dialog_manager.next()
 
 
@@ -80,21 +87,71 @@ async def on_approve(callback: CallbackQuery, button: Button, dialog_manager: Di
 #                                   "Если ты передумаешь, просто напиши /start.")
 
 
-# # Хэндлер, который сработает, если пользователь ввел корректный возраст
-# async def correct_name_handler(
-#         message: Message, 
-#         widget: ManagedTextInput, 
-#         dialog_manager: DialogManager, 
-#         text: str) -> None:
+def name_check(text: str) -> str:
+    if not text:
+        raise ValueError
     
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, message.from_user.id)
+    # Check if text contains exactly two words
+    words = text.strip().split()
+    if len(words) != 2:
+        logging.error(f"Name must contain exactly two words: {text}")
+        raise ValueError
+    
+    # Check if each word contains Russian characters and is more than one symbol
+    russian_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')
+    
+    # Validate that each word contains at least some Russian characters and is more than one symbol
+    for word in words:
+        if len(word) <= 1:
+            logging.error(f"Each word must be more than one symbol: {text}")
+            raise ValueError
+        
+        word_chars = set(word)
+        if not word_chars.intersection(russian_chars):
+            logging.error(f"Name must contain only Russian characters: {text}")
+            raise ValueError
+    
+    return text
 
-#     user_oboarding.name = text
+# Хэндлер, который сработает, если пользователь ввел корректный возраст
+async def correct_name_handler(
+        message: Message, 
+        widget: ManagedTextInput, 
+        dialog_manager: DialogManager, 
+        text: str) -> None:
+    
+    users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
+    user_oboarding: UserOnboarding = await get_last_user_on(users, message.from_user.id)
 
-#     await add_action(dialog_manager, Action.ONBOARDING)
-#     await users.redis.lpush(f"{message.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
+    user_oboarding.name = text
+    dialog_manager.dialog_data["name"] = text.split()[0]
+
+    await add_action(dialog_manager, Action.ONBOARDING)
+    await users.redis.lpush(f"{message.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
+    await dialog_manager.next()
+
+
+async def error_name_handler(
+        message: Message, 
+        widget: ManagedTextInput, 
+        dialog_manager: DialogManager, 
+        error: ValueError):
+        
+    await message.answer(
+        text='Вы ввели некорректное имя. Попробуйте еще раз'
+    )
+
+    await asyncio.sleep(1)
+
+
+async def text_input_handler(
+        message: Message, 
+        widget: ManagedTextInput, 
+        dialog_manager: DialogManager, 
+        text: str) -> None:
+
+    await dialog_manager.next()
+    
 
 
 # # Проверка текста на то, что он содержит число от 16 до 45 включительно

@@ -1,14 +1,20 @@
 from typing import TYPE_CHECKING
 
-import random
+import asyncio
 
+
+from aiogram.types import Message
+from aiogram.enums import ContentType
 from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Next
+from aiogram_dialog.widgets.kbd import Button, Next, Back
 from aiogram_dialog.widgets.text import Format
 from aiogram_dialog.widgets.input import TextInput, MessageInput
 from aiogram.fsm.storage.redis import RedisStorage
 
-from ..utils.boarding_handlers import on_approve
+from my_tools import get_datetime_now, DateTimeKeys
+
+from ..utils.boarding_handlers import on_approve, \
+    name_check, correct_name_handler, error_name_handler, text_input_handler
 
 from ..utils.utils import get_middleware_data, load_locales
 
@@ -29,9 +35,52 @@ async def dialog_get_data(
     
     _, _, user_data = get_middleware_data(dialog_manager)
     
-    data = load_locales(i18n)
+    data: dict[str, str] = load_locales(i18n, dialog_manager)
 
     return data
+
+
+# Хэндлер, который сработает, если пользователь отправил вообще не текст
+async def handle_voice_and_video_note(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+
+    bot, _, user_data = get_middleware_data(dialog_manager)
+
+    # print(message.model_dump_json(indent=4, exclude_none=True))
+
+    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+
+    if message.voice:
+        await bot.download(
+            file=message.voice.file_id, 
+            destination=f"media/{user_data.id}/onboarding/{date}.ogg"
+            )
+
+    if message.video_note:
+        await bot.download(
+            file=message.video_note.file_id, 
+            destination=f"media/{user_data.id}/onboarding/{date}.mp4"
+            )
+
+    await message.answer(text='Вы добавили не текст')
+    await dialog_manager.next()
+
+
+async def handle_other(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+
+    await message.answer(text='❗Это должен быть текст, голосовое или кружочек')
+    await asyncio.sleep(1)
+
+
+MESSAGE_INPUT = MessageInput(
+        func=handle_voice_and_video_note,
+        content_types= [ContentType.VOICE, ContentType.VIDEO_NOTE]
+    )
+
+
+INCORRECT_INPUT = MessageInput(
+        func=handle_other,
+        content_types= ContentType.ANY
+    )
 
 
 # Dialog with windows using Format for localization
@@ -44,50 +93,56 @@ dialog = Dialog(
     ),
 
     Window(
-        Format("{welcome}"),
+        Format("{preonboarding}"),
         Button(Format("{approve_btn}"), id="approve", on_click=on_approve),
         state=Onboarding.PREONBOARDING
     ),
 
-    # Window(
-    #     Format("{name}"),
-    #     TextInput(
-    #         id='name_input',
-    #         on_success=correct_name_handler,
-    #     ),
-    #     state=Onboarding.NAME
-    # ),
+    Window(
+        Format("{name}"),
+        TextInput(
+            id='name_input',
+            type_factory=name_check,
+            on_success=correct_name_handler,
+            on_error=error_name_handler,
+        ),
+        state=Onboarding.NAME
+    ),
 
-    # Window(
-    #     Format("{important_today}"),
-    #     TextInput(
-    #         id='important_today_text_input',
-    #         type_factory=age_check,
-    #         on_success=correct_age_handler,
-    #         on_error=error_age_handler,
-    #     ),
-    #     MessageInput(),
-    #     state=Onboarding.IMPORTANT_TODAY
-    # ),
+    Window(
+        Format("{important_today}"),
+        Back(Format("{back_btn}"), id="back_btn_id"),
+        TextInput(
+            id='important_today_text_input',
+            on_success=text_input_handler
+        ),
+        MESSAGE_INPUT,
+        INCORRECT_INPUT,
+        state=Onboarding.IMPORTANT_TODAY
+    ),
 
-#     Window(
-#         Format("{important_today}"),
-#         TextInput(
-#             id='age_input',
-#             type_factory=age_check,
-#             on_success=correct_age_handler,
-#             on_error=error_age_handler,
-#         ),
-#         MessageInput(),
-#         state=Onboarding.DIFFICULT_TODAY
-#     ),
+    Window(
+        Format("{difficult_today}"),
+        TextInput(
+            id='difficult_today_text_input',
+            on_success=text_input_handler
+        ),
+        MESSAGE_INPUT,
+        INCORRECT_INPUT,
+        state=Onboarding.DIFFICULT_TODAY
+    ),
 
-#     Window(
-#         Format("{education}"),
-#         Button(Format("{bachelor_btn}"), id="bachelor", on_click=handle_education),
-#         Button(Format("{master_btn}"), id="master", on_click=handle_education),
-#         state=Onboarding.EDUCATION
-#     ),
+    Window(
+        Format("{something_else}"),
+        Next(Format("{to_profile_btn}"), id="to_profile_btn_id"),
+        TextInput(
+            id='something_else_text_input',
+            on_success=text_input_handler
+        ),
+        MESSAGE_INPUT,
+        INCORRECT_INPUT,
+        state=Onboarding.SOMETHING_ELSE
+    ),
 
 #     Window(
 #         Format("{current_status}"),

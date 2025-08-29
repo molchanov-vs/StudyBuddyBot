@@ -66,6 +66,7 @@ The `dev.sh` script provides easy commands for managing the development environm
 | `./dev.sh shell` | Open shell in bot container |
 | `./dev.sh redis-cli` | Open Redis CLI |
 | `./dev.sh redis-ui` | Start Redis Commander (web UI) |
+| `./dev.sh flush-db` | Flush all Redis databases |
 | `./dev.sh build` | Rebuild the bot container |
 | `./dev.sh clean` | Stop and remove all containers, networks, and volumes |
 | `./dev.sh status` | Show status of all services |
@@ -116,6 +117,32 @@ The following environment variables are automatically set in the development env
 - `TIME_ZONE` - System timezone (Europe/Moscow)
 - `DEBUG` - Debug mode (true)
 - `DEVELOPMENT` - Development mode (true)
+
+## Database Management
+
+### Automatic Database Flushing
+In development mode, the bot automatically flushes all Redis databases on startup. This ensures a clean state for each development session.
+
+**When it happens:**
+- Every time you start the bot with `./dev.sh start`
+- Every time you restart the bot with `./dev.sh restart`
+- Only when `DEVELOPMENT=true` environment variable is set
+
+**What gets flushed:**
+- All Redis databases (0, 1, 2, 3)
+- FSM storage
+- User data
+- Temporary data
+
+### Manual Database Flushing
+You can manually flush the database at any time:
+
+```bash
+# Flush all Redis databases
+./dev.sh flush-db
+```
+
+This command will prompt for confirmation before flushing.
 
 ## Development Workflow
 

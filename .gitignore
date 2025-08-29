@@ -11,5 +11,6 @@ test.txt
 /session
 *.sh
 /data
+/media
 /old_logs
 /dump

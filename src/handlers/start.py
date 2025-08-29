@@ -1,5 +1,4 @@
 import logging
-from tkinter.constants import ON
 
 from aiogram import Router, F
 from aiogram.types import Message, ErrorEvent, CallbackQuery
@@ -31,13 +30,6 @@ def get_current_state(
         current_state = dialog_manager.current_context().state
     except:
         current_state = Onboarding.WELCOME
-
-    # if user_id in config.superadmins.ids:
-    #     current_state = Admin.MAIN
-
-    # elif user_id in config.admins.ids:
-    #     if current_state != Onboarding.WELCOME:
-    #         current_state = Admin.MAIN
 
     return current_state
 
@@ -106,5 +98,5 @@ async def start_dialog(
     await dialog_manager.start(
         state=state, 
         mode=mode,
-        show_mode=show_mode,
+        show_mode=show_mode
         )

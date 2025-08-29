@@ -8,6 +8,88 @@ chmod +x setup.sh
 ```
 
 
+## Input
+
+```bash
+payload = {
+    "message_id": 1114,
+    "date": 1756451513,
+    "chat": {
+        "id": 7031635629,
+        "type": "private",
+        "username": "AndyReacher",
+        "first_name": "Andy",
+        "last_name": "Reacher"
+    },
+    "from_user": {
+        "id": 7031635629,
+        "is_bot": False,
+        "first_name": "Andy",
+        "last_name": "Reacher",
+        "username": "AndyReacher",
+        "language_code": "ru",
+        "is_premium": True
+    },
+    "voice": {
+        "file_id": "AwACAgIAAxkBAAIEWmixUrliYXYuGcFc71Z3AbCRk8JWAAIodQACjraQSTISo64GAyk0NgQ",
+        "file_unique_id": "AgADKHUAAo62kEk",
+        "duration": 1,
+        "mime_type": "audio/ogg",
+        "file_size": 4554
+    }
+}
+
+# The new payload with video_note
+payload2 = {
+    "message_id": 1123,
+    "date": 1756451718,
+    "chat": {
+        "id": 7031635629,
+        "type": "private",
+        "username": "AndyReacher",
+        "first_name": "Andy",
+        "last_name": "Reacher"
+    },
+    "from_user": {
+        "id": 7031635629,
+        "is_bot": False,
+        "first_name": "Andy",
+        "last_name": "Reacher",
+        "username": "AndyReacher",
+        "language_code": "ru",
+        "is_premium": True
+    },
+    "video_note": {
+        "file_id": "DQACAgIAAxkBAAIEY2ixU4a_2nxQcfhHQyDNmxzpirrDAAI0dQACjraQSaRmOBedgJV2NgQ",
+        "file_unique_id": "AgADNHUAAo62kEk",
+        "length": 400,
+        "duration": 2,
+        "thumbnail": {
+            "file_id": "AAMCAgADGQEAAgRjaLFThr_afFBx-EdDIM2bHOmKusMAAjR1AAKOtpBJpGY4F52AlXYBAAdtAAM2BA",
+            "file_unique_id": "AQADNHUAAo62kEly",
+            "width": 320,
+            "height": 320,
+            "file_size": 15503
+        },
+        "file_size": 251086,
+        "thumb": {
+            "file_id": "AAMCAgADGQEAAgRjaLFThr_afFBx-EdDIM2bHOmKusMAAjR1AAKOtpBJpGY4F52AlXYBAAdtAAM2BA",
+            "file_unique_id": "AQADNHUAAo62kEly",
+            "file_size": 15503,
+            "width": 320,
+            "height": 320
+        }
+    }
+}
+```
+
+## ToDo
+- [ ] Сделать Windows Navigator
+
+
+
+
+
 
 
 

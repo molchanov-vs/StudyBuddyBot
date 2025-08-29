@@ -54,7 +54,6 @@ def markdown_to_html(text: str) -> str:
     return text
 
 
-
 def get_middleware_data(dialog_manager: DialogManager) -> tuple[Bot, Config, UserData]:
 
     bot: Bot = dialog_manager.middleware_data[DialogManagerKeys.BOT]
@@ -80,17 +79,22 @@ def remove_logs():
 
 
 def load_locales(
-    i18n: TranslatorRunner, 
-    name: str = "None",
-    want: str = "хотел(а)") -> dict[str, str]:
+    i18n: TranslatorRunner,
+    dialog_manager: DialogManager
+    ) -> dict[str, str]:
+
+    name: str = dialog_manager.dialog_data.get("name", "None")
+    want: str = dialog_manager.dialog_data.get("want", "хотел(а)")
 
     return {
         "back_btn": i18n.service.back_btn(),
+        "next_btn": i18n.service.next_btn(),
         "welcome": i18n.onboarding.welcome(),
         "super_btn": i18n.onboarding.super_btn(),
         "preonboarding": i18n.onboarding.preonboarding(),
         "approve_btn": i18n.onboarding.approve_btn(),
         "disapprove_btn": i18n.onboarding.disapprove_btn(),
+        "name": i18n.onboarding.name(),
         "important_today": i18n.onboarding.important_today(name=name),
         "difficult_today": i18n.onboarding.difficult_today(),
         "something_else": i18n.onboarding.something_else(),
