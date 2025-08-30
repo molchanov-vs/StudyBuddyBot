@@ -1,19 +1,7 @@
-import asyncio
-import os
 from io import BytesIO
 from typing import Optional, Tuple
 
 import face_recognition
-
-from aiogram.types import Message
-from aiogram.enums import ContentType
-from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.input import MessageInput
-
-from ..states import Onboarding
-
-from .utils import get_middleware_data
-from my_tools import get_datetime_now, DateTimeKeys
 
 
 async def analyze_face_in_image(bot, file_id: str) -> Tuple[bool, Optional[str], Optional[float]]:
@@ -59,30 +47,3 @@ async def analyze_face_in_image(bot, file_id: str) -> Tuple[bool, Optional[str],
         
     except Exception as e:
         return False, f'❌ Ошибка при обработке изображения: {str(e)}', None
-
-
-async def handle_photo(message: Message, widget: MessageInput, dialog_manager: DialogManager):
-    bot, _, user_data = get_middleware_data(dialog_manager)
-    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
-
-    if not message.photo:
-        await message.answer(text='❗Это должна быть фотография')
-        await asyncio.sleep(1)
-        return
-
-    success, error_message, _ = await analyze_face_in_image(bot, message.photo[-1].file_id)
-    
-    if not success:
-        await message.answer(text=error_message)
-        await asyncio.sleep(1)
-        return
-
-    # Save the photo
-    await bot.download(
-        file=message.photo[-1].file_id,
-        destination=f"media/{user_data.id}/onboarding/profile_{date}.jpg"
-    )
-
-    await message.answer(text='✅ Фотография успешно загружена')
-
-    await dialog_manager.switch_to(Onboarding.STEP_1)

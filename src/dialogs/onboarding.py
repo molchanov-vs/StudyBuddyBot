@@ -19,11 +19,9 @@ from my_tools import get_datetime_now, DateTimeKeys
 
 from ..utils.boarding_handlers import on_approve, \
     name_check, correct_name_handler, error_name_handler, text_input_handler, \
-        handle_profile
+        handle_profile, confirm_photo_handler, handle_photo
 
 from ..utils.utils import get_middleware_data, load_locales
-
-from ..utils.face_handlers import handle_photo
 
 from ..states import Onboarding
 from ..config import Config
@@ -174,7 +172,7 @@ dialog = Dialog(
         Format("{yes_photo}"),
         DynamicMedia('photo'),
         Back(Format("{back_btn}"), id="back_btn_id"),
-        Button(Format("{yes_btn}"), id="yes_btn_id", on_click=handle_photo),
+        Button(Format("{yes_btn}"), id="yes_btn_id", on_click=confirm_photo_handler),
         PHOTO_INPUT,
         getter=photo_getter,
         state=Onboarding.PHOTO

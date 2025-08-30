@@ -4,18 +4,23 @@ import os
 import asyncio
 import logging
 
+
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
-from aiogram_dialog.widgets.input import ManagedTextInput
+from aiogram_dialog.widgets.input import ManagedTextInput, MessageInput
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.fsm.state import State
+from aiogram.fsm.state import State 
+
+
+from .utils import get_middleware_data
+from my_tools import get_datetime_now, DateTimeKeys
 
 
 from ..enums import Database, Action
 from ..states import Onboarding
 from ..custom_types import UserOnboarding, UserOffboarding
-from .utils import get_current_state, get_middleware_data
+from .utils import get_middleware_data, determine_russian_name_gender
 from .face_handlers import analyze_face_in_image
 from ..queries import add_action
 
@@ -25,20 +30,6 @@ from fluentogram import TranslatorRunner
 
 if TYPE_CHECKING:
     from ..locales.stub import TranslatorRunner
-
-
-async def get_numbers(**kwargs):
-    nums = [
-        ("1️⃣", '1'),
-        ("2️⃣", '2'),
-        ("3️⃣", '3'),
-        ("4️⃣", '4'),
-        ("5️⃣", '5'),
-    ]
-    return {
-        "nums": nums,
-        "count": len(nums),
-    }
 
 
 async def get_last_user_on(users: RedisStorage, user_id: int) -> UserOnboarding:
@@ -111,10 +102,15 @@ async def correct_name_handler(
 
     user_oboarding.name = text
     dialog_manager.dialog_data["name"] = text.split()[0]
+    
+    # Determine gender from the full name
+    gender = determine_russian_name_gender(text)
+    dialog_manager.dialog_data["gender"] = gender
 
     await add_action(dialog_manager, Action.ONBOARDING)
     await users.redis.lpush(f"{message.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
     await dialog_manager.next()
+
 
 
 async def error_name_handler(
@@ -139,7 +135,63 @@ async def text_input_handler(
     await dialog_manager.next()
 
 
-async def handle_profile(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+async def download_photo(
+    message: Message,
+    dialog_manager: DialogManager) -> None:
+
+    bot, _, user_data = get_middleware_data(dialog_manager)
+    
+    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+    await bot.download(
+        file=message.photo[-1].file_id, 
+        destination=f"media/{user_data.id}/onboarding/profile_{date}.jpg")
+
+
+async def confirm_photo_handler(
+        callback: CallbackQuery, 
+        button: Button, 
+        dialog_manager: DialogManager) -> None:
+    """
+    Handler for the "Yes" button that confirms using the current photo.
+    This should be called instead of handle_photo for button clicks.
+    """
+
+    await download_photo(callback.message, dialog_manager)
+    
+    await callback.answer("✅ Фотография успешно загружена")
+    await dialog_manager.switch_to(Onboarding.STEP_1)
+
+
+async def handle_photo(
+    message: Message, 
+    widget: MessageInput, 
+    dialog_manager: DialogManager):
+
+    bot, _, _ = get_middleware_data(dialog_manager)
+
+    if not message.photo:
+        await message.answer(text='❗Это должна быть фотография')
+        await asyncio.sleep(1)
+        return
+
+    success, error_message, _ = await analyze_face_in_image(bot, message.photo[-1].file_id)
+    
+    if not success:
+        await message.answer(text=error_message)
+        await asyncio.sleep(1)
+        return
+
+    await download_photo(message, dialog_manager)
+
+    await message.answer(text='✅ Фотография успешно загружена')
+
+    await dialog_manager.switch_to(Onboarding.STEP_1)
+
+
+async def handle_profile(
+    callback: CallbackQuery, 
+    button: Button, 
+    dialog_manager: DialogManager):
 
     bot, _, user_data = get_middleware_data(dialog_manager)
 
@@ -152,7 +204,6 @@ async def handle_profile(callback: CallbackQuery, button: Button, dialog_manager
 
     best_photo = None
     best_face_ratio = 0
-    # date: str = get_datetime_now(DateTimeKeys.DEFAULT)
 
     # Перебираем все фотографии профиля для поиска лучшей
     for photo in photos.photos:
@@ -170,12 +221,4 @@ async def handle_profile(callback: CallbackQuery, button: Button, dialog_manager
     
     dialog_manager.dialog_data["photo_file_id"] = best_photo.file_id
     await dialog_manager.switch_to(Onboarding.PHOTO)
-
-    # # Сохраняем лучшую фотографию
-    # await bot.download(
-    #     file=best_photo.file_id,
-    #     destination=f"media/{user_data.id}/onboarding/profile_{date}.jpg"
-    # )
-
-    # await dialog_manager.next()
     
