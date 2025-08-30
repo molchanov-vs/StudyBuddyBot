@@ -70,7 +70,7 @@ services:
         echo 'Starting bot in development mode...' &&
         python bot.py
       "
-    restart: unless-stopped
+    restart: "no"
     networks:
       - studybuddybot-network
 

@@ -48,10 +48,10 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
     await start_dialog(dialog_manager, current_state)
 
 
-@router.callback_query(F.data == "flow")
-async def run_flow(callback: CallbackQuery, dialog_manager: DialogManager) -> None:
+# @router.callback_query(F.data == "flow")
+# async def run_flow(callback: CallbackQuery, dialog_manager: DialogManager) -> None:
 
-    await start_dialog(dialog_manager, Onboarding.WELCOME, show_mode=ShowMode.SEND)
+#     await start_dialog(dialog_manager, Onboarding.WELCOME, show_mode=ShowMode.SEND)
 
 
 @router.errors(ExceptionTypeFilter(UnknownIntent))

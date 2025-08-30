@@ -15,20 +15,10 @@ payload = {
     "message_id": 1114,
     "date": 1756451513,
     "chat": {
-        "id": 7031635629,
-        "type": "private",
-        "username": "AndyReacher",
-        "first_name": "Andy",
-        "last_name": "Reacher"
+        ...
     },
     "from_user": {
-        "id": 7031635629,
-        "is_bot": False,
-        "first_name": "Andy",
-        "last_name": "Reacher",
-        "username": "AndyReacher",
-        "language_code": "ru",
-        "is_premium": True
+        ...
     },
     "voice": {
         "file_id": "AwACAgIAAxkBAAIEWmixUrliYXYuGcFc71Z3AbCRk8JWAAIodQACjraQSTISo64GAyk0NgQ",
@@ -44,20 +34,10 @@ payload2 = {
     "message_id": 1123,
     "date": 1756451718,
     "chat": {
-        "id": 7031635629,
-        "type": "private",
-        "username": "AndyReacher",
-        "first_name": "Andy",
-        "last_name": "Reacher"
+        ...
     },
     "from_user": {
-        "id": 7031635629,
-        "is_bot": False,
-        "first_name": "Andy",
-        "last_name": "Reacher",
-        "username": "AndyReacher",
-        "language_code": "ru",
-        "is_premium": True
+        ...
     },
     "video_note": {
         "file_id": "DQACAgIAAxkBAAIEY2ixU4a_2nxQcfhHQyDNmxzpirrDAAI0dQACjraQSaRmOBedgJV2NgQ",
@@ -81,9 +61,25 @@ payload2 = {
         }
     }
 }
+
+
+{
+    "total_count": 2,
+    "photos":
+    [
+        [
+            {}, {}, {}
+        ]
+        [
+            {}, {}, {}
+        ]
+    ],
+}
 ```
 
 ## ToDo
+
+- [ ] Добавить id для загружаемых медиа
 - [ ] Сделать Windows Navigator
 
 

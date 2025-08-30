@@ -15,8 +15,11 @@ from aiogram.fsm.state import State
 from ..enums import Database, Action
 from ..states import Onboarding
 from ..custom_types import UserOnboarding, UserOffboarding
-from .utils import get_current_state
+from .utils import get_current_state, get_middleware_data
+from .face_handlers import analyze_face_in_image
 from ..queries import add_action
+
+from my_tools import get_datetime_now, DateTimeKeys
 
 from fluentogram import TranslatorRunner
 
@@ -68,23 +71,6 @@ async def on_approve(callback: CallbackQuery, button: Button, dialog_manager: Di
     os.makedirs(f"media/{callback.from_user.id}/onboarding", exist_ok=True)
 
     await dialog_manager.next()
-
-
-# async def on_principe(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     await add_action(dialog_manager, Action.ONBOARDING)
-
-#     if not await users.redis.sismember("russian_names", callback.from_user.first_name):
-#         await dialog_manager.next()
-#     else:
-#         await dialog_manager.switch_to(Onboarding.AGE)
-
-
-# async def on_disapprove(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-#     await add_action(dialog_manager, Action.ONBOARDING)
-#     await callback.message.answer("К сожалению, без согласия на обработку данных бот не сможет работать. "
-#                                   "Если ты передумаешь, просто напиши /start.")
 
 
 def name_check(text: str) -> str:
@@ -151,234 +137,45 @@ async def text_input_handler(
         text: str) -> None:
 
     await dialog_manager.next()
+
+
+async def handle_profile(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+
+    bot, _, user_data = get_middleware_data(dialog_manager)
+
+    # Получаем фотографии профиля
+    photos = await bot.get_user_profile_photos(user_id=user_data.id)
+
+    if photos.total_count == 0:
+        await dialog_manager.switch_to(Onboarding.NO_PHOTO)
+        return
+
+    best_photo = None
+    best_face_ratio = 0
+    # date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+
+    # Перебираем все фотографии профиля для поиска лучшей
+    for photo in photos.photos:
+        success, _, face_ratio = await analyze_face_in_image(bot, photo[-1].file_id)
+        
+        if success and face_ratio and face_ratio > best_face_ratio:
+            best_face_ratio = face_ratio
+            best_photo = photo[-1]
+
+    if best_photo is None:
+        # Если не найдено подходящее фото, переходим к загрузке нового
+        await dialog_manager.switch_to(Onboarding.NO_PHOTO)
+        return
+
     
+    dialog_manager.dialog_data["photo_file_id"] = best_photo.file_id
+    await dialog_manager.switch_to(Onboarding.PHOTO)
 
+    # # Сохраняем лучшую фотографию
+    # await bot.download(
+    #     file=best_photo.file_id,
+    #     destination=f"media/{user_data.id}/onboarding/profile_{date}.jpg"
+    # )
 
-# # Проверка текста на то, что он содержит число от 16 до 45 включительно
-# def age_check(text: str) -> str:
-#     if all(ch.isdigit() for ch in text) and 16 <= int(text) <= 70:
-#         return text
-#     raise ValueError
-
-
-# # Хэндлер, который сработает, если пользователь ввел корректный возраст
-# async def correct_age_handler(
-#         message: Message, 
-#         widget: ManagedTextInput, 
-#         dialog_manager: DialogManager, 
-#         text: str) -> None:
+    # await dialog_manager.next()
     
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, message.from_user.id)
-#     await add_action(dialog_manager, Action.ONBOARDING)
-
-#     user_oboarding.age = text
-
-#     await users.redis.lpush(f"{message.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-
-#     await dialog_manager.next()
-
-
-# # Хэндлер, который сработает на ввод некорректного возраста
-# async def error_age_handler(
-#         message: Message, 
-#         widget: ManagedTextInput, 
-#         dialog_manager: DialogManager, 
-#         error: ValueError):
-#     await message.answer(
-#         text='Вы ввели некорректный возраст. Попробуйте еще раз'
-#     )
-
-
-# async def handle_education(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, callback.from_user.id)
-#     await add_action(dialog_manager, Action.ONBOARDING)
-    
-#     user_oboarding.education = callback.data
-
-#     await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# async def handle_status(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, callback.from_user.id)
-#     await add_action(dialog_manager, Action.ONBOARDING)
-    
-#     user_oboarding.current_status = callback.data
-    
-#     await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-
-#     if "staff" in callback.data:
-#         await dialog_manager.switch_to(Onboarding.ABOUT)
-#     else:
-#         await dialog_manager.next()
-
-
-# async def handle_university(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, callback.from_user.id)
-#     await add_action(dialog_manager, Action.ONBOARDING)
-    
-#     user_oboarding.university = callback.data
-    
-#     await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# async def handle_about(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, callback.from_user.id)
-
-#     user_oboarding.about = callback.data
-#     await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-
-#     if "socials" in callback.data:
-#         await dialog_manager.next()
-
-#     else:
-#         await dialog_manager.switch_to(Onboarding.PERSON)
-
-
-# async def handle_clarify(
-#     message: Message, 
-#     widget: ManagedTextInput, 
-#     dialog_manager: DialogManager, 
-#     text: str) -> None:
-    
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, message.from_user.id)
-#     await add_action(dialog_manager, Action.ONBOARDING)
-    
-#     user_oboarding.about = text
-    
-#     await users.redis.lpush(f"{message.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# async def start_interaction(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-#     await add_action(dialog_manager, Action.ONBOARDING)
-
-#     await dialog_manager.next()
-
-
-# async def on_num_selected(
-#         callback: CallbackQuery, 
-#         widget: Any,
-#         dialog_manager: DialogManager, 
-#         item_id: str):
-    
-#     state: State = get_current_state(dialog_manager)
-    
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_oboarding: UserOnboarding = await get_last_user_on(users, callback.from_user.id)
-    
-#     match state:
-#         case Onboarding.QUESTION_1:
-#             user_oboarding.question_1 = item_id
-#         case Onboarding.QUESTION_2:
-#             user_oboarding.question_2 = item_id
-#         case Onboarding.QUESTION_3:
-#             user_oboarding.question_3 = item_id
-#         case Onboarding.QUESTION_4:
-#             user_oboarding.question_4 = item_id
-
-#     await add_action(dialog_manager, Action.ONBOARDING)
-    
-#     await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# async def finish_dialog(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-#     await add_action(dialog_manager, Action.ONBOARDING)
-
-#     await dialog_manager.next()
-
-
-# # Callback handlers for the buttons
-# async def on_ready(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_offboarding: UserOffboarding = UserOffboarding(approve=True)
-
-#     await add_action(dialog_manager, Action.OFFBOARDING)
-
-#     await users.redis.lpush(f"{callback.from_user.id}_off", user_offboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# async def on_num_selected_off(
-#         callback: CallbackQuery, 
-#         widget: Any,
-#         dialog_manager: DialogManager, 
-#         item_id: str):
-    
-#     state: State = get_current_state(dialog_manager)
-
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_offboarding: UserOffboarding = await get_last_user_off(users, callback.from_user.id)
-    
-#     match state:
-#         case Offboarding.QUESTION_1:
-#             user_offboarding.question_1 = item_id
-#         case Offboarding.QUESTION_2:
-#             user_offboarding.question_2 = item_id
-#         case Offboarding.QUESTION_3:
-#             user_offboarding.question_3 = item_id
-#         case Offboarding.QUESTION_4:
-#             user_offboarding.question_4 = item_id
-    
-#     await add_action(dialog_manager, Action.OFFBOARDING)
-
-#     await users.redis.lpush(f"{callback.from_user.id}_off", user_offboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# # Хэндлер, который сработает, если пользователь ввел корректный возраст
-# async def associate_handler(
-#         message: Message, 
-#         widget: ManagedTextInput, 
-#         dialog_manager: DialogManager, 
-#         text: str) -> None:
-    
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_offboarding: UserOffboarding = await get_last_user_off(users, message.from_user.id)
-
-#     user_offboarding.associate = text
-
-#     await add_action(dialog_manager, Action.OFFBOARDING)
-
-#     await users.redis.lpush(f"{message.from_user.id}_off", user_offboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()
-
-
-# # Callback handlers for the buttons
-# async def on_skip(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-#     i18n: TranslatorRunner = dialog_manager.middleware_data['i18n']
-
-#     await add_action(dialog_manager, Action.OFFBOARDING)
-#     await callback.message.answer(f"{i18n.offboarding.thanks_msg()}")
-
-
-# async def feedback_handler(
-#         message: Message, 
-#         widget: ManagedTextInput, 
-#         dialog_manager: DialogManager, 
-#         text: str) -> None:
-    
-#     users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-#     user_offboarding: UserOffboarding = await get_last_user_off(users, message.from_user.id)
-
-#     user_offboarding.feedback = text
-
-#     await add_action(dialog_manager, Action.OFFBOARDING)
-
-#     await users.redis.lpush(f"{message.from_user.id}_off", user_offboarding.model_dump_json(indent=4))
-#     await dialog_manager.next()

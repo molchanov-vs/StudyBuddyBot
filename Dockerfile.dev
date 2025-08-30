@@ -13,6 +13,14 @@ RUN apt-get update && apt-get install -y \
     vim \
     curl \
     redis-tools \
+    cmake \
+    build-essential \
+    libboost-all-dev \
+    libopencv-dev \
+    libblas-dev \
+    liblapack-dev \
+    libatlas-base-dev \
+    gfortran \
     && rm -rf /var/lib/apt/lists/*
 
 # Set locale
