@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 import asyncio
+import aiofiles
 
 
 from aiogram.types import Message
@@ -8,28 +9,30 @@ from aiogram.enums import ContentType
 from aiogram.fsm.storage.redis import RedisStorage
 
 from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Next, Back, Row
+from aiogram_dialog.widgets.kbd import Button, Row, Next
 from aiogram_dialog.widgets.text import Format
-from aiogram_dialog.widgets.input import TextInput, MessageInput
+from aiogram_dialog.widgets.input import TextInput, MessageInput, ManagedTextInput
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.media import DynamicMedia
 
 
 from my_tools import get_datetime_now, DateTimeKeys
 
-from ..utils.boarding_handlers import on_approve, \
-    name_check, correct_name_handler, error_name_handler, text_input_handler, \
+from ..utils.boarding_handlers import on_approve, on_next, on_back, \
+    name_check, correct_name_handler, error_name_handler, \
         handle_profile, confirm_photo_handler, handle_photo
 
 from ..utils.utils import get_middleware_data, load_locales
 
 from ..states import Onboarding
-from ..config import Config
 
 from fluentogram import TranslatorRunner
 
 if TYPE_CHECKING:
     from ..locales.stub import TranslatorRunner
+
+
+MAX_BYTES = 10 * 1024 * 1024
 
 
 async def photo_getter(
@@ -56,6 +59,10 @@ async def dialog_get_data(
     
     data: dict[str, str] = load_locales(i18n, dialog_manager)
 
+    nav = dialog_manager.dialog_data.get("nav", {})
+    if nav and nav.can_go_next():
+        data["on_next_btn"] = True
+
     return data
 
 
@@ -64,39 +71,91 @@ async def handle_voice_and_video_note(message: Message, widget: MessageInput, di
 
     bot, _, user_data = get_middleware_data(dialog_manager)
 
-    # print(message.model_dump_json(indent=4, exclude_none=True))
-
     date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+    widget_id = widget.widget_id
 
-    if message.voice or message.video_note:
-        if message.voice:
+    if message.voice:
+        if message.voice.file_size <= MAX_BYTES:
             await bot.download(
                 file=message.voice.file_id, 
-                destination=f"media/{user_data.id}/onboarding/{date}.ogg"
+                destination=f"media/{user_data.id}/onboarding/{widget_id}_voice_{date}.ogg"
                 )
             await dialog_manager.next()
 
-        if message.video_note:
+        else:
+            await message.answer("⚠️ Голосовое слишком большое (>10 МБ). Отправьте более короткую запись.")
+            await asyncio.sleep(1)
+            return
+
+    elif message.video_note:
+        if message.video_note.file_size <= MAX_BYTES:
             await bot.download(
                 file=message.video_note.file_id, 
-                destination=f"media/{user_data.id}/onboarding/{date}.mp4"
+                destination=f"media/{user_data.id}/onboarding/{widget_id}_video_note_{date}.mp4"
                 )
             await dialog_manager.next()
+        
+        else:
+            await message.answer("⚠️ Кружочек слишком большой (>10 МБ). Отправьте более короткий.")
+            await asyncio.sleep(1)
+            return
+        
     else:
         await message.answer(text='❗Это должен быть текст, голосовое или кружочек')
         await asyncio.sleep(1)
 
+async def text_input_handler(
+        message: Message, 
+        widget: ManagedTextInput, 
+        dialog_manager: DialogManager, 
+        text: str) -> None:
 
-MEDIA_INPUT = MessageInput(
+    _, _, user_data = get_middleware_data(dialog_manager)
+    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+
+    widget_id = widget.widget.widget_id
+
+    # Save text content to file asynchronously
+    file_path = f"media/{user_data.id}/onboarding/{widget_id}_text_{date}.txt"
+    async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+        await f.write(text)
+
+    await dialog_manager.next()
+
+
+def create_media_input(input_id: int) -> MessageInput:
+    """
+    Create a media input for a specific window.
+    """
+    return MessageInput(
         func=handle_voice_and_video_note,
-        content_types= [ContentType.VOICE, ContentType.VIDEO_NOTE]
+        content_types= [ContentType.VOICE, ContentType.VIDEO_NOTE],
+        id=f"{input_id}"
     )
 
+def create_text_input(input_id: int) -> TextInput:
+    """
+    Create a text input for a specific window.
+    """
+    return TextInput(
+        id=f"{input_id}",
+        on_success=text_input_handler
+    )
 
-PHOTO_INPUT = MessageInput(
+def create_photo_input(input_id: int) -> MessageInput:
+    """
+    Create a photo input.
+    """
+    return MessageInput(
         func=handle_photo,
         content_types= ContentType.PHOTO
     )
+
+
+BACK_NEXT_BTNS = Row(
+    Button(Format("{back_btn}"), id="back_btn_id", on_click=on_back),
+    # Button(Format("{next_btn}"), id="next_btn_id", on_click=on_next, when="on_next_btn"),
+)
 
 
 # Dialog with windows using Format for localization
@@ -116,6 +175,7 @@ dialog = Dialog(
 
     Window(
         Format("{name}"),
+        Button(Format("{next_btn}"), id="next_btn_id", on_click=on_next, when="on_next_btn"),
         TextInput(
             id='name_input',
             type_factory=name_check,
@@ -127,131 +187,103 @@ dialog = Dialog(
 
     Window(
         Format("{important_today}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='important_today_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=1),
+        create_media_input(input_id=1),
         state=Onboarding.IMPORTANT_TODAY
     ),
 
     Window(
         Format("{difficult_today}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='difficult_today_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=2),
+        create_media_input(input_id=2),
         state=Onboarding.DIFFICULT_TODAY
     ),
 
     Window(
         Format("{something_else}"),
         Row(
-            Back(Format("{back_btn}"), id="back_btn_id"),
+            Button(Format("{back_btn}"), id="back_btn_id", on_click=on_back),
             Button(Format("{next_btn}"), id="to_profile_btn_id", on_click=handle_profile),
         ),
-        TextInput(
-            id='something_else_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        create_text_input(input_id=3),
+        create_media_input(input_id=3),
         state=Onboarding.SOMETHING_ELSE
     ),
 
     Window(
         Format("{no_photo}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        PHOTO_INPUT,
+        Button(Format("{back_btn}"), id="back_btn_id", on_click=on_back),
+        create_photo_input(input_id=4),
         state=Onboarding.NO_PHOTO
     ),
 
     Window(
         Format("{yes_photo}"),
         DynamicMedia('photo'),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        Button(Format("{yes_btn}"), id="yes_btn_id", on_click=confirm_photo_handler),
-        PHOTO_INPUT,
+        Row(
+            Button(Format("{back_btn}"), id="back_btn_id", on_click=on_back),
+            Button(Format("{yes_btn}"), id="yes_btn_id", on_click=confirm_photo_handler),
+        ),
+        create_photo_input(input_id=4),
         getter=photo_getter,
         state=Onboarding.PHOTO
     ),
 
     Window(
         Format("{step_1}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='step_1_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=5),
+        create_media_input(input_id=5),
         state=Onboarding.STEP_1
     ),
 
     Window(
         Format("{background}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='background_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=6),
+        create_media_input(input_id=6),
         state=Onboarding.BACKGROUND
     ),
 
     Window(
         Format("{step_2}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='step_2_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=7),
+        create_media_input(input_id=7),
         state=Onboarding.STEP_2
     ),
 
     Window(
         Format("{step_3}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='step_3_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=8),
+        create_media_input(input_id=8),
         state=Onboarding.STEP_3
     ),
 
     Window(
         Format("{step_4}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='step_4_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=9),
+        create_media_input(input_id=9),
         state=Onboarding.STEP_4
     ),
 
     Window(
         Format("{step_5}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='step_5_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=10),
+        create_media_input(input_id=10),
         state=Onboarding.STEP_5
     ),
 
     Window(
         Format("{step_6}"),
-        Back(Format("{back_btn}"), id="back_btn_id"),
-        TextInput(
-            id='step_6_text_input',
-            on_success=text_input_handler
-        ),
-        MEDIA_INPUT,
+        BACK_NEXT_BTNS,
+        create_text_input(input_id=11),
+        create_media_input(input_id=11),
         state=Onboarding.STEP_6
     ),
 
@@ -259,86 +291,6 @@ dialog = Dialog(
         Format("{thanks_btn}"),
         state=Onboarding.THANKS
     ),
-
-
-
-
-#     Window(
-#         Format("{current_status}"),
-#         Button(Format("{offline_status_btn}"), id="offline", on_click=handle_status),
-#         Button(Format("{online_status_btn}"), id="online", on_click=handle_status),
-#         Button(Format("{staff_status_btn}"), id="staff", on_click=handle_status),
-#         state=Onboarding.CURRENT_STATUS
-#     ),
-
-#    Window(
-#         Format("{university}"),
-#         Button(Format("{mipt_btn}"), id="mipt", on_click=handle_university),
-#         Button(Format("{other_btn}"), id="other", on_click=handle_university),
-#         state=Onboarding.UNIVERSITY
-#     ),
-
-#     Window(
-#         Format("{about_bot}"),
-#         Row(
-#             Button(Format("{newsletter_btn}"), id="newsletter", on_click=handle_about),
-#             Button(Format("{friends_btn}"), id="friends", on_click=handle_about),
-#         ),
-#         Button(Format("{socials_btn}"), id="socials", on_click=handle_about),
-#         state=Onboarding.ABOUT
-#     ),
-
-#     Window(
-#         Format("{clarify_message}"),
-#         TextInput(
-#             id='clarify_input',
-#             on_success=handle_clarify,
-#         ),
-#         state=Onboarding.CLARIFY
-#     ),
-
-#     Window(
-#         Format("{person_welcome_msg}"),
-#         Button(Format("{lets_start}"), id="start_interaction", on_click=start_interaction),
-#         state=Onboarding.PERSON
-#     ),
-
-#     Window(
-#         Format("{question_1}"),
-#         NUMS,
-#         state=Onboarding.QUESTION_1,
-#         getter=get_numbers
-#     ),
-
-#     Window(
-#         Format("{question_2}"),
-#         NUMS,
-#         state=Onboarding.QUESTION_2,
-#         getter=get_numbers
-#     ),
-
-#     Window(
-#         Format("{question_3}"),
-#         NUMS,
-#         state=Onboarding.QUESTION_3,
-#         getter=get_numbers
-#     ),
-
-#     Window(
-#         Format("{question_4}"),
-#         NUMS,
-#         state=Onboarding.QUESTION_4,
-#         getter=get_numbers
-#     ),
-
-#     Window(
-#         Format("{thanks_msg}"),
-#         TextInput(
-#             id='chat_input',
-#             on_success=chat_handler,
-#         ),
-#         state=Onboarding.CHAT
-#     ),
-
+    
     getter=dialog_get_data
 )

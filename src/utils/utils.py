@@ -83,7 +83,6 @@ def load_locales(
     dialog_manager: DialogManager
     ) -> dict[str, str]:
 
-    name: str = dialog_manager.dialog_data.get("name", "None")
     want: str = dialog_manager.dialog_data.get("gender", "unknown")
 
     want = "хотел" if want == "male" else "хотела" if want == "female" else "хотел(а)"
@@ -97,7 +96,7 @@ def load_locales(
         "approve_btn": i18n.onboarding.approve_btn(),
         "disapprove_btn": i18n.onboarding.disapprove_btn(),
         "name": i18n.onboarding.name(),
-        "important_today": i18n.onboarding.important_today(name=name),
+        "important_today": i18n.onboarding.important_today(),
         "difficult_today": i18n.onboarding.difficult_today(),
         "something_else": i18n.onboarding.something_else(),
         "to_profile_btn": i18n.onboarding.to_profile_btn(),

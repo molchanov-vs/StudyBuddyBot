@@ -26,10 +26,11 @@ def get_current_state(
         config: Config, 
         user_id: int) -> Onboarding | Admin:
 
-    try:
-        current_state = dialog_manager.current_context().state
-    except:
-        current_state = Onboarding.WELCOME
+    # try:
+    #     current_state = dialog_manager.current_context().state
+    # except:
+    # для Насти
+    current_state = Onboarding.WELCOME
 
     return current_state
 

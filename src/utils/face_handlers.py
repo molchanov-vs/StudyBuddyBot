@@ -1,10 +1,17 @@
+import logging
+
 from io import BytesIO
 from typing import Optional, Tuple
+
+from aiogram import Bot
 
 import face_recognition
 
 
-async def analyze_face_in_image(bot, file_id: str) -> Tuple[bool, Optional[str], Optional[float]]:
+async def analyze_face_in_image(
+    bot: Bot, 
+    file_id: str,
+    user_id: int) -> Tuple[bool, Optional[str], Optional[float]]:
     """
     Analyzes a photo for face detection and quality.
     
@@ -27,21 +34,25 @@ async def analyze_face_in_image(bot, file_id: str) -> Tuple[bool, Optional[str],
         face_locations = face_recognition.face_locations(image)
         
         if len(face_locations) == 0:
+            logging.error(f"Face not found in image: {file_id} for user: {user_id}")
             return False, '😕 Лицо не найдено. Попробуйте фото, где лицо видно лучше.', None
 
         if len(face_locations) > 1:
+            logging.error(f"Multiple faces found in image: {file_id} for user: {user_id}")
             return False, '😕 Найдено несколько лиц. Попробуйте фото, где лицо видно лучше.', None
 
         (top, right, bottom, left) = face_locations[0]
         face_area = (right - left) * (bottom - top)
         
         if img_area == 0:
+            logging.error(f"Image area is 0 in image: {file_id} for user: {user_id}")
             return False, '⚠️ Не удалось определить размер изображения.', None
             
         face_ratio = face_area / img_area
         
-        if face_ratio <= 0.15:
-            return False, '⚠️ Лицо слишком маленькое (менее 15% кадра). Загрузите фото, где лицо крупнее.', None
+        if face_ratio <= 0.10:
+            logging.error(f"Face ratio is too small: {face_ratio} in image: {file_id} for user: {user_id}")
+            return False, '⚠️ Лицо слишком маленькое (менее 10% кадра). Пожалуйста, загрузи фото, где лицо крупнее.', None
 
         return True, None, face_ratio
         

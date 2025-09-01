@@ -6,6 +6,7 @@ test.txt
 *.yaml
 *.session
 *.json
+*.log
 /jsons
 /logs
 /session

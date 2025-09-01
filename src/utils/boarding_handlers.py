@@ -8,14 +8,12 @@ import logging
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
-from aiogram_dialog.widgets.input import ManagedTextInput, MessageInput
+from aiogram_dialog.widgets.input import MessageInput, ManagedTextInput
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.fsm.state import State 
 
 
 from .utils import get_middleware_data
 from my_tools import get_datetime_now, DateTimeKeys
-
 
 from ..enums import Database, Action
 from ..states import Onboarding
@@ -64,6 +62,21 @@ async def on_approve(callback: CallbackQuery, button: Button, dialog_manager: Di
     await dialog_manager.next()
 
 
+def get_nav_data(dialog_manager: DialogManager):
+
+    return dialog_manager.dialog_data["nav"]
+
+
+async def on_back(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+
+    await dialog_manager.back()
+
+
+async def on_next(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+
+    await dialog_manager.next()
+
+
 def name_check(text: str) -> str:
     if not text:
         raise ValueError
@@ -101,7 +114,6 @@ async def correct_name_handler(
     user_oboarding: UserOnboarding = await get_last_user_on(users, message.from_user.id)
 
     user_oboarding.name = text
-    dialog_manager.dialog_data["name"] = text.split()[0]
     
     # Determine gender from the full name
     gender = determine_russian_name_gender(text)
@@ -126,15 +138,6 @@ async def error_name_handler(
     await asyncio.sleep(1)
 
 
-async def text_input_handler(
-        message: Message, 
-        widget: ManagedTextInput, 
-        dialog_manager: DialogManager, 
-        text: str) -> None:
-
-    await dialog_manager.next()
-
-
 async def download_photo(
     message: Message,
     dialog_manager: DialogManager) -> None:
@@ -144,7 +147,7 @@ async def download_photo(
     date: str = get_datetime_now(DateTimeKeys.DEFAULT)
     await bot.download(
         file=message.photo[-1].file_id, 
-        destination=f"media/{user_data.id}/onboarding/profile_{date}.jpg")
+        destination=f"media/{user_data.id}/onboarding/4_profile_{date}.jpg")
 
 
 async def confirm_photo_handler(
@@ -167,14 +170,15 @@ async def handle_photo(
     widget: MessageInput, 
     dialog_manager: DialogManager):
 
-    bot, _, _ = get_middleware_data(dialog_manager)
+    bot, _, used_data = get_middleware_data(dialog_manager)
 
     if not message.photo:
         await message.answer(text='❗Это должна быть фотография')
         await asyncio.sleep(1)
         return
 
-    success, error_message, _ = await analyze_face_in_image(bot, message.photo[-1].file_id)
+    success, error_message, _ = await analyze_face_in_image(
+        bot, message.photo[-1].file_id, used_data.id)
     
     if not success:
         await message.answer(text=error_message)
