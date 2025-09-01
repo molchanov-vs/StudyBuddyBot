@@ -1,5 +1,3 @@
-from typing import Any, TYPE_CHECKING
-
 import os
 import asyncio
 import logging
@@ -9,7 +7,6 @@ import aiofiles
 
 from aiogram.types import CallbackQuery, Message
 from aiogram.enums import ContentType
-from aiogram.fsm.storage.redis import RedisStorage
 
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
@@ -19,19 +16,12 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from .utils import get_middleware_data
 from my_tools import get_datetime_now, DateTimeKeys
 
-from ..enums import Database, Action
 from ..states import Onboarding
-from ..custom_types import UserOnboarding
 from .utils import get_middleware_data, determine_russian_name_gender
 from .face_handlers import analyze_face_in_image
 from ..queries import add_action
 
 from my_tools import get_datetime_now, DateTimeKeys
-
-from fluentogram import TranslatorRunner
-
-if TYPE_CHECKING:
-    from ..locales.stub import TranslatorRunner
 
 
 MAX_BYTES = 10 * 1024 * 1024
@@ -39,6 +29,9 @@ MAX_BYTES = 10 * 1024 * 1024
 
 async def go_back(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     current_state = dialog_manager.current_context().state
+
+    await add_action(dialog_manager)
+    
     match current_state:
         case Onboarding.STEP_1:
             await dialog_manager.switch_to(Onboarding.NO_PHOTO)
@@ -54,29 +47,16 @@ async def go_back(callback: CallbackQuery, button: Button, dialog_manager: Dialo
 
 
 async def go_next(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+
+    await add_action(dialog_manager)
     await dialog_manager.next()
-
-
-async def get_last_user_on(users: RedisStorage, user_id: int) -> UserOnboarding:
-
-    user_onboarding_raw = await users.redis.lrange(f"{user_id}_on", 0, -1)
-    if user_onboarding_raw:
-        return UserOnboarding.model_validate_json(user_onboarding_raw[0])
-
-    return UserOnboarding()
 
 
 # Callback handlers for the buttons
 async def on_approve(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
 
-    users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-
-    user_oboarding: UserOnboarding = UserOnboarding(approve=True)
-    await users.redis.lpush(f"{callback.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
-    await add_action(dialog_manager, Action.ONBOARDING)
-
+    await add_action(dialog_manager)
     os.makedirs(f"media/{callback.from_user.id}/onboarding", exist_ok=True)
-
     await dialog_manager.next()
 
 
@@ -112,18 +92,16 @@ async def correct_name_handler(
         widget: ManagedTextInput, 
         dialog_manager: DialogManager, 
         text: str) -> None:
-    
-    users: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
-    user_oboarding: UserOnboarding = await get_last_user_on(users, message.from_user.id)
 
-    user_oboarding.name = text
+    _, _, user_data = get_middleware_data(dialog_manager)
     
     # Determine gender from the full name
     gender = determine_russian_name_gender(text)
     dialog_manager.dialog_data["gender"] = gender
 
-    await add_action(dialog_manager, Action.ONBOARDING)
-    await users.redis.lpush(f"{message.from_user.id}_on", user_oboarding.model_dump_json(indent=4))
+    await write_txt_file(text, user_data.id)
+
+    await add_action(dialog_manager)
     await dialog_manager.next()
 
 
@@ -140,6 +118,16 @@ async def error_name_handler(
     await asyncio.sleep(1)
 
 
+async def write_txt_file(text: str, user_id: int, widget_id: str = "0"):
+
+    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+
+    # Save text content to file asynchronously
+    file_path = f"media/{user_id}/onboarding/{widget_id}_text_{date}.txt"
+    async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+        await f.write(text)
+
+
 async def text_input_handler(
         message: Message, 
         widget: ManagedTextInput, 
@@ -147,14 +135,9 @@ async def text_input_handler(
         text: str) -> None:
 
     _, _, user_data = get_middleware_data(dialog_manager)
-    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
 
-    widget_id = widget.widget.widget_id
-
-    # Save text content to file asynchronously
-    file_path = f"media/{user_data.id}/onboarding/{widget_id}_text_{date}.txt"
-    async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
-        await f.write(text)
+    await add_action(dialog_manager)
+    await write_txt_file(text, user_data.id, widget.widget.widget_id)
 
     await dialog_manager.next()
 
@@ -190,15 +173,11 @@ def create_photo_input(input_id: int) -> MessageInput:
     )    
 
 
-def get_nav_data(dialog_manager: DialogManager):
-
-    return dialog_manager.dialog_data["nav"]
-
-
 # Хэндлер, который сработает, если пользователь отправил вообще не текст
 async def handle_voice_and_video_note(message: Message, widget: MessageInput, dialog_manager: DialogManager):
 
     bot, _, user_data = get_middleware_data(dialog_manager)
+    await add_action(dialog_manager)
 
     date: str = get_datetime_now(DateTimeKeys.DEFAULT)
     widget_id = widget.widget_id
@@ -271,6 +250,7 @@ async def confirm_photo_handler(
     """
 
     await download_photo(callback.message, dialog_manager)
+    await add_action(dialog_manager)
     
     await callback.answer("✅ Фотография успешно загружена")
     await asyncio.sleep(1)
@@ -282,7 +262,6 @@ async def handle_photo(
     widget: MessageInput, 
     dialog_manager: DialogManager):
 
-    # print(message.model_dump_json(indent=4, exclude_none=True))
 
     bot, _, used_data = get_middleware_data(dialog_manager)
 
@@ -298,6 +277,8 @@ async def handle_photo(
         await message.answer(text=error_message)
         await asyncio.sleep(1)
         return
+
+    await add_action(dialog_manager)
 
     await download_photo(message, dialog_manager)
 

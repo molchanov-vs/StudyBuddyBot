@@ -29,6 +29,9 @@ def get_current_state(
         config: Config, 
         user_id: int) -> Onboarding | Admin:
 
+    if user_id in config.superadmins.ids:
+        return Admin.MAIN
+
     try:
         current_state = dialog_manager.current_context().state
 
@@ -55,12 +58,6 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
     else:
     
         await start_dialog(dialog_manager, current_state)
-
-
-# @router.callback_query(F.data == "flow")
-# async def run_flow(callback: CallbackQuery, dialog_manager: DialogManager) -> None:
-
-#     await start_dialog(dialog_manager, Onboarding.WELCOME, show_mode=ShowMode.SEND)
 
 
 @router.errors(ExceptionTypeFilter(UnknownIntent))

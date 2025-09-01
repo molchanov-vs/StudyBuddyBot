@@ -1,8 +1,4 @@
-from tkinter import ON
 from typing import TYPE_CHECKING
-
-from aiogram.types import CallbackQuery
-from aiogram.fsm.storage.redis import RedisStorage
 
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.kbd import Button, Row, Next, Back
@@ -16,7 +12,7 @@ from ..utils.boarding_handlers import on_approve,\
             photo_getter, create_text_input, create_media_input, create_photo_input, \
                 go_back, go_next
 
-from ..utils.utils import get_middleware_data, load_locales
+from ..utils.utils import load_locales
 
 from ..states import Onboarding
 
@@ -28,11 +24,8 @@ if TYPE_CHECKING:
 
 async def dialog_get_data(
         i18n: TranslatorRunner,
-        users: RedisStorage,
         dialog_manager: DialogManager,
         **kwargs):
-    
-    _, _, user_data = get_middleware_data(dialog_manager)
     
     data: dict[str, str] = load_locales(i18n, dialog_manager)
 

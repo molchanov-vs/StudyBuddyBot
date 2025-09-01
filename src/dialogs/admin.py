@@ -16,7 +16,6 @@ from ..config import Config
 from ..states import Admin, Onboarding
 
 from ..utils.pusher import run_pusher
-from ..utils.download import download_user_info
 from ..utils.utils import get_middleware_data
 
 from my_tools import get_users, Langs, get_time_delta
@@ -125,12 +124,12 @@ dialog = Dialog(
         Const("--------------------"),
         Format("{users}"),
 
-        Button(
-            text=Format("🔥 Run pusher ({value_counter})"),
-            id="run_pusher_id",
-            on_click=run_pusher,
-            when="run_pusher"
-        ),
+        # Button(
+        #     text=Format("🔥 Run pusher ({value_counter})"),
+        #     id="run_pusher_id",
+        #     on_click=run_pusher,
+        #     when="run_pusher"
+        # ),
 
         ListGroup(
             Url(
@@ -162,12 +161,6 @@ dialog = Dialog(
                 item_id_getter=operator.itemgetter(1),
                 items="numbers",
             ),
-        ),
-
-        Button(
-            text=Const("⬇️ Download"),
-            id="download_btn",
-            on_click=download_user_info
         ),
         
         Row(

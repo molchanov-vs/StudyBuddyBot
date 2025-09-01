@@ -1,8 +1,7 @@
-from datetime import datetime
 from pydantic import BaseModel, field_validator, ValidationInfo
 from pydantic import PositiveInt, Field
 
-from my_tools import get_datetime_now, DateTimeKeys
+from my_tools import get_datetime_now
 
 
 class UserNotify(BaseModel):
@@ -10,45 +9,6 @@ class UserNotify(BaseModel):
     id: PositiveInt
     date: str = Field(default_factory=get_datetime_now)
     status: bool
-
-
-class UserOnboarding(BaseModel):
-
-    date: str = Field(default_factory=get_datetime_now, validate_default=True)
-    approve: bool = Field(default=False)
-    name: str | None = Field(default=None)
-    important_today: str | None = Field(default=None)
-    difficult_today: str | None = Field(default=None)
-    something_else: str | None = Field(default=None)
-    photo: str | None = Field(default=None)
-    step_1: str | None = Field(default=None)
-    background: str | None = Field(default=None)
-    step_2: str | None = Field(default=None)
-    step_3: str | None = Field(default=None)
-    step_4: str | None = Field(default=None)
-    step_5: str | None = Field(default=None)
-    step_6: str | None = Field(default=None)
-
-    @field_validator("date")
-    @classmethod
-    def set_date(cls, v: datetime):
-        return get_datetime_now(DateTimeKeys.DEFAULT)
-
-
-class UserOffboarding(BaseModel):
-
-    date: str = Field(default_factory=get_datetime_now, validate_default=True)
-    question_1: str | None = Field(default=None)
-    question_2: str | None = Field(default=None)
-    question_3: str | None = Field(default=None)
-    question_4: str | None = Field(default=None)
-    associate: str | None = Field(default=None)
-    feedback: str | None = Field(default=None)
-
-    @field_validator("date")
-    @classmethod
-    def set_date(cls, v: datetime):
-        return get_datetime_now(DateTimeKeys.DEFAULT)
 
 
 class UserAction(BaseModel):

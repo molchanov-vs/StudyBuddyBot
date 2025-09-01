@@ -59,6 +59,7 @@ class Config(BaseModel):
 
     system: System
     bot: Bot
+    test_bot: Bot
     message_effect: MessageEffect
     admins: Admins
     superadmins: Superadmins

@@ -9,15 +9,18 @@ from .custom_types import UserAction, UserData
 from .utils.utils import get_middleware_data
 
 
-
 async def add_action(
         dialog_manager: DialogManager,
-        action: str,
+        action: str = None,
         user_data: UserData | None = None
 ) -> None:
 
     if not user_data:
         _, _, user_data = get_middleware_data(dialog_manager)
+
+    if not action:
+        current_state = dialog_manager.current_context().state
+        action = current_state.state
 
     users_storage: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
     
