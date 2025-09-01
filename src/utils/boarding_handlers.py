@@ -4,20 +4,24 @@ import os
 import asyncio
 import logging
 
+import asyncio
+import aiofiles
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.kbd import Button
-from aiogram_dialog.widgets.input import MessageInput, ManagedTextInput
+from aiogram.enums import ContentType
 from aiogram.fsm.storage.redis import RedisStorage
 
+from aiogram_dialog import DialogManager
+from aiogram_dialog.widgets.kbd import Button
+from aiogram_dialog.widgets.input import MessageInput, ManagedTextInput, TextInput
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
 
 from .utils import get_middleware_data
 from my_tools import get_datetime_now, DateTimeKeys
 
 from ..enums import Database, Action
 from ..states import Onboarding
-from ..custom_types import UserOnboarding, UserOffboarding
+from ..custom_types import UserOnboarding
 from .utils import get_middleware_data, determine_russian_name_gender
 from .face_handlers import analyze_face_in_image
 from ..queries import add_action
@@ -30,6 +34,29 @@ if TYPE_CHECKING:
     from ..locales.stub import TranslatorRunner
 
 
+MAX_BYTES = 10 * 1024 * 1024
+
+
+async def go_back(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    current_state = dialog_manager.current_context().state
+    match current_state:
+        case Onboarding.STEP_1:
+            await dialog_manager.switch_to(Onboarding.NO_PHOTO)
+        
+        case Onboarding.NO_PHOTO:
+            await dialog_manager.switch_to(Onboarding.SOMETHING_ELSE)
+
+        case Onboarding.PHOTO:
+            await dialog_manager.switch_to(Onboarding.SOMETHING_ELSE)
+
+        case _:
+            await dialog_manager.back()
+
+
+async def go_next(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.next()
+
+
 async def get_last_user_on(users: RedisStorage, user_id: int) -> UserOnboarding:
 
     user_onboarding_raw = await users.redis.lrange(f"{user_id}_on", 0, -1)
@@ -37,15 +64,6 @@ async def get_last_user_on(users: RedisStorage, user_id: int) -> UserOnboarding:
         return UserOnboarding.model_validate_json(user_onboarding_raw[0])
 
     return UserOnboarding()
-
-
-async def get_last_user_off(users: RedisStorage, user_id: int) -> UserOffboarding:
-
-    user_offboarding_raw = await users.redis.lrange(f"{user_id}_off", 0, -1)
-    if user_offboarding_raw:
-        return UserOffboarding.model_validate_json(user_offboarding_raw[0])
-    
-    return UserOffboarding()
 
 
 # Callback handlers for the buttons
@@ -58,21 +76,6 @@ async def on_approve(callback: CallbackQuery, button: Button, dialog_manager: Di
     await add_action(dialog_manager, Action.ONBOARDING)
 
     os.makedirs(f"media/{callback.from_user.id}/onboarding", exist_ok=True)
-
-    await dialog_manager.next()
-
-
-def get_nav_data(dialog_manager: DialogManager):
-
-    return dialog_manager.dialog_data["nav"]
-
-
-async def on_back(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-
-    await dialog_manager.back()
-
-
-async def on_next(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
 
     await dialog_manager.next()
 
@@ -124,7 +127,6 @@ async def correct_name_handler(
     await dialog_manager.next()
 
 
-
 async def error_name_handler(
         message: Message, 
         widget: ManagedTextInput, 
@@ -138,12 +140,121 @@ async def error_name_handler(
     await asyncio.sleep(1)
 
 
+async def text_input_handler(
+        message: Message, 
+        widget: ManagedTextInput, 
+        dialog_manager: DialogManager, 
+        text: str) -> None:
+
+    _, _, user_data = get_middleware_data(dialog_manager)
+    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+
+    widget_id = widget.widget.widget_id
+
+    # Save text content to file asynchronously
+    file_path = f"media/{user_data.id}/onboarding/{widget_id}_text_{date}.txt"
+    async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+        await f.write(text)
+
+    await dialog_manager.next()
+
+
+def create_media_input(input_id: int) -> MessageInput:
+    """
+    Create a media input for a specific window.
+    """
+    return MessageInput(
+        func=handle_voice_and_video_note,
+        content_types= [ContentType.VOICE, ContentType.VIDEO_NOTE],
+        id=f"{input_id}"
+    )
+
+
+def create_text_input(input_id: int) -> TextInput:
+    """
+    Create a text input for a specific window.
+    """
+    return TextInput(
+        id=f"{input_id}",
+        on_success=text_input_handler
+    )
+
+
+def create_photo_input(input_id: int) -> MessageInput:
+    """
+    Create a photo input.
+    """
+    return MessageInput(
+        func=handle_photo,
+        content_types= ContentType.ANY
+    )    
+
+
+def get_nav_data(dialog_manager: DialogManager):
+
+    return dialog_manager.dialog_data["nav"]
+
+
+# Хэндлер, который сработает, если пользователь отправил вообще не текст
+async def handle_voice_and_video_note(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+
+    bot, _, user_data = get_middleware_data(dialog_manager)
+
+    date: str = get_datetime_now(DateTimeKeys.DEFAULT)
+    widget_id = widget.widget_id
+
+    if message.voice:
+        if message.voice.file_size <= MAX_BYTES:
+            await bot.download(
+                file=message.voice.file_id, 
+                destination=f"media/{user_data.id}/onboarding/{widget_id}_voice_{date}.ogg"
+                )
+            await dialog_manager.next()
+
+        else:
+            await message.answer("⚠️ Голосовое слишком большое (>10 МБ). Отправьте более короткую запись.")
+            await asyncio.sleep(1)
+            return
+
+    elif message.video_note:
+        if message.video_note.file_size <= MAX_BYTES:
+            await bot.download(
+                file=message.video_note.file_id, 
+                destination=f"media/{user_data.id}/onboarding/{widget_id}_video_note_{date}.mp4"
+                )
+            await dialog_manager.next()
+        
+        else:
+            await message.answer("⚠️ Кружочек слишком большой (>10 МБ). Отправьте более короткий.")
+            await asyncio.sleep(1)
+            return
+        
+    else:
+        await message.answer(text='❗Это должен быть текст, голосовое или кружочек')
+        await asyncio.sleep(1)
+
+
+async def photo_getter(
+    dialog_manager: DialogManager,
+    **kwargs):
+
+    photo_file_id = dialog_manager.dialog_data.get('photo_file_id')
+
+    photo = MediaAttachment(
+        type=ContentType.PHOTO, 
+        file_id=MediaId(photo_file_id))
+
+    return {'photo': photo}
+
+
 async def download_photo(
     message: Message,
     dialog_manager: DialogManager) -> None:
 
     bot, _, user_data = get_middleware_data(dialog_manager)
-    
+
+    dialog_manager.dialog_data["photo"] = True
+
     date: str = get_datetime_now(DateTimeKeys.DEFAULT)
     await bot.download(
         file=message.photo[-1].file_id, 
@@ -170,6 +281,8 @@ async def handle_photo(
     message: Message, 
     widget: MessageInput, 
     dialog_manager: DialogManager):
+
+    # print(message.model_dump_json(indent=4, exclude_none=True))
 
     bot, _, used_data = get_middleware_data(dialog_manager)
 
@@ -213,7 +326,7 @@ async def handle_profile(
 
     # Перебираем все фотографии профиля для поиска лучшей
     for photo in photos.photos:
-        success, _, face_ratio = await analyze_face_in_image(bot, photo[-1].file_id)
+        success, _, face_ratio = await analyze_face_in_image(bot, photo[-1].file_id, user_data.id)
         
         if success and face_ratio and face_ratio > best_face_ratio:
             best_face_ratio = face_ratio
