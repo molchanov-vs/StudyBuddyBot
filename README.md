@@ -1,11 +1,28 @@
 # StudyBuddyBot
 
+A Telegram bot for business school navigation and study assistance.
 
-## installation
+## Quick Start
+
+### Development Setup
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
+
+### Deployment
+
+#### Development Environment
+```bash
+./deploy.sh deploy dev
+```
+
+#### Production Environment
+```bash
+./deploy.sh deploy prod
+```
+
+For detailed deployment instructions, see [README-DEPLOY.md](README-DEPLOY.md).
 
 
 ## Input

@@ -2,7 +2,6 @@ services:
   # Redis service for FSM, users, and temp storage
   redis:
     image: redis:8.2-alpine
-    container_name: studybuddybot-redis-dev
     ports:
       - "6379:6379"
     volumes:
@@ -22,34 +21,23 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: studybuddybot-dev
     volumes:
       # Mount source code for hot reloading
       - .:/app
       # Mount logs directory
-      - ./logs:/app/logs
+      - ./logs_test:/app/logs
       # Mount media directory for user files
-      - ./media:/app/media
+      - ./media_test:/app/media
     ports:
-      - "8000:8000"  # For potential web interface
+      - "8001:8000"  # Different port to avoid conflict with prod
     environment:
       # Python environment
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       
-      # Redis configuration
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LANGGRAPH_REDIS_URL=redis://redis:6379
-      
-      # OpenAI configuration (from config.yaml)
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-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}
-      
-      # Bot configuration (from config.yaml)
-      - BOT_TOKEN=${BOT_TOKEN:-7547512356:AAHK_L2lN9w3B4Yp72Tx4clu3iIrMzA2Uj4}
-      - BOT_ID=${BOT_ID:-7547512356}
-      - BOT_NAME=${BOT_NAME:-TestPhystechBot}
+      # Bot configuration environment
+      - BOT_CONFIG=bot_test
       
       # System configuration
       - TIME_ZONE=${TIME_ZONE:-Europe/Moscow}
@@ -73,22 +61,6 @@ services:
     restart: "no"
     networks:
       - studybuddybot-network
-
-  # Optional: Redis Commander for Redis management (web UI)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: studybuddybot-redis-commander
-    ports:
-      - "8081:8081"
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    depends_on:
-      - redis
-    restart: unless-stopped
-    networks:
-      - studybuddybot-network
-    profiles:
-      - tools  # Only start when explicitly requested
 
 volumes:
   redis_data:

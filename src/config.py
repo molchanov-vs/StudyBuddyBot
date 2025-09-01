@@ -59,7 +59,7 @@ class Config(BaseModel):
 
     system: System
     bot: Bot
-    test_bot: Bot
+    bot_test: Bot
     message_effect: MessageEffect
     admins: Admins
     superadmins: Superadmins
@@ -70,9 +70,22 @@ class Config(BaseModel):
 
 # Load the YAML configuration file
 def load_config() -> Config:
+    import os
 
     with open('config.yaml', 'r') as file:
         config_data = yaml.safe_load(file)
+
+    # Get bot configuration from environment variable
+    bot_config = os.getenv('BOT_CONFIG', 'bot')
+    
+    # Select the appropriate bot configuration
+    if bot_config == 'bot_test':
+        # Use bot_test configuration for development
+        config_data['bot'] = config_data['bot_test']
+        print(f"Using development bot configuration: {config_data['bot_test']['name']}")
+    else:
+        # Use bot configuration for production
+        print(f"Using production bot configuration: {config_data['bot']['name']}")
 
     try:
         config: Config = Config(**config_data)

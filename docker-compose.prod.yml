@@ -1,0 +1,46 @@
+services:
+  redis:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # Different port to avoid conflict with dev
+    volumes:
+      - redis_data_prod:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - studybuddibot_network_prod
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    environment:
+      - BOT_CONFIG=${BOT_CONFIG:-bot}
+      - TZ=Europe/Moscow
+    volumes:
+      - ./logs:/app/logs
+      - ./media:/app/media
+    depends_on:
+      - redis
+    networks:
+      - studybuddibot_network_prod
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  redis_data_prod:
+    driver: local
+
+networks:
+  studybuddibot_network_prod:
+    driver: bridge
