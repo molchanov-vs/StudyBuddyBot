@@ -1,4 +1,7 @@
+from typing import Any
+
 import logging
+import random
 
 from aiogram import Router, F
 from aiogram.types import Message, ErrorEvent, CallbackQuery
@@ -12,7 +15,7 @@ from my_tools import DialogManagerKeys
 
 from ..states import Admin, Onboarding
 from ..enums import Database, Action
-from ..utils.utils import get_middleware_data
+from ..utils.utils import get_middleware_data, AFTER_MESSAGES
 from ..queries import add_action
 from ..config import Config
 
@@ -26,11 +29,11 @@ def get_current_state(
         config: Config, 
         user_id: int) -> Onboarding | Admin:
 
-    # try:
-    #     current_state = dialog_manager.current_context().state
-    # except:
-    # для Насти
-    current_state = Onboarding.WELCOME
+    try:
+        current_state = dialog_manager.current_context().state
+
+    except:
+        current_state = Onboarding.WELCOME
 
     return current_state
 
@@ -45,8 +48,13 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
     await add_action(dialog_manager, Action.START)
 
     current_state = get_current_state(dialog_manager, config, user_data.id)
+    if current_state == Onboarding.THANKS:
+        
+        await message.answer(text=random.choice(AFTER_MESSAGES))
     
-    await start_dialog(dialog_manager, current_state)
+    else:
+    
+        await start_dialog(dialog_manager, current_state)
 
 
 # @router.callback_query(F.data == "flow")
@@ -91,7 +99,7 @@ async def handle_error_and_restart(event: ErrorEvent, dialog_manager: DialogMana
 
 async def start_dialog(
         dialog_manager: DialogManager, 
-        state: Admin,
+        state: Onboarding,
         mode: StartMode = StartMode.RESET_STACK,
         show_mode=ShowMode.DELETE_AND_SEND
         ):

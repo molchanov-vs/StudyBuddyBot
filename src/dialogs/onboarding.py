@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING
 import asyncio
 import aiofiles
 
-
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.enums import ContentType
 from aiogram.fsm.storage.redis import RedisStorage
 
@@ -35,6 +34,14 @@ if TYPE_CHECKING:
 MAX_BYTES = 10 * 1024 * 1024
 
 
+async def go_back(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.back()
+
+
+async def go_next(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.next()
+
+
 async def photo_getter(
     dialog_manager: DialogManager,
     **kwargs):
@@ -46,7 +53,6 @@ async def photo_getter(
         file_id=MediaId(photo_file_id))
 
     return {'photo': photo}
-
 
 
 async def dialog_get_data(
@@ -292,5 +298,5 @@ dialog = Dialog(
         state=Onboarding.THANKS
     ),
     
-    getter=dialog_get_data
+    getter=dialog_get_data,
 )

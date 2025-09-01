@@ -132,7 +132,7 @@ async def error_name_handler(
         error: ValueError):
         
     await message.answer(
-        text='Вы ввели некорректное имя. Попробуйте еще раз'
+        text='Вы ввели некорректное имя.'
     )
 
     await asyncio.sleep(1)
@@ -162,6 +162,7 @@ async def confirm_photo_handler(
     await download_photo(callback.message, dialog_manager)
     
     await callback.answer("✅ Фотография успешно загружена")
+    await asyncio.sleep(1)
     await dialog_manager.switch_to(Onboarding.STEP_1)
 
 
@@ -188,6 +189,7 @@ async def handle_photo(
     await download_photo(message, dialog_manager)
 
     await message.answer(text='✅ Фотография успешно загружена')
+    await asyncio.sleep(1)
 
     await dialog_manager.switch_to(Onboarding.STEP_1)
 

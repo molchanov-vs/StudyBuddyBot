@@ -69,44 +69,50 @@ class UserData(BaseModel):
     id: PositiveInt
     first_name: str | None = Field(default=None)
     last_name: str | None = Field(default=None)
-    full_name: str | None = Field(default=None)
+    full_name: str | None = Field(default=None, validate_default=True)
     username: str | None = Field(default=None)
     is_premium: bool | None = Field(default=None)
     language_code: str = Field(default="")
     date: str = Field(default_factory=get_datetime_now)
 
+
     @field_validator("full_name", mode="before")
     @classmethod
-    def set_fullname(cls, v: str | None, info: ValidationInfo) -> str | None:
-        """Automatically generate full_name from first_name and last_name if not provided."""
-        if v is not None:
-            return v
+    def set_fullname(cls, v: str, info: ValidationInfo):
+
+        _first_name = info.data.get("first_name")
+        _last_name = info.data.get("last_name")
+
+        if _first_name or _last_name:
+            _full_name = " ".join(
+                [
+                    _first_name if _first_name else "", 
+                    _last_name if _last_name else ""
+                ]).strip()
+        else:
+            _full_name = v
         
-        first_name = info.data.get("first_name")
-        last_name = info.data.get("last_name")
-        
-        if first_name or last_name:
-            return " ".join(filter(None, [first_name, last_name])).strip()
-        
-        return None
+        return _full_name 
+
 
     @field_validator("username")
     @classmethod
-    def set_username(cls, v: str | None) -> str | None:
-        """Add Telegram URL prefix if username doesn't have it."""
-        if v is None:
-            return None
-        
-        if not v.startswith("https://t.me/"):
-            return f"https://t.me/{v}"
-        
-        return v
+    def set_username(cls, v: str):
 
-    @field_validator("language_code")
+        if isinstance(v, str) and not v.startswith("https://t.me/"):
+            return f"https://t.me/{v}"
+        else:
+            return v
+
+
+    @field_validator("language_code", mode="before")
     @classmethod
-    def set_language_code(cls, v: str) -> str:
-        """Ensure language_code is never None, default to empty string."""
-        return v or ""
+    def set_language_code(cls, v: str):
+
+        if not v:
+            return ""
+        else:
+            return v
 
     def compare_fields(self) -> tuple:
         
@@ -116,7 +122,3 @@ class UserData(BaseModel):
         if not isinstance(other, UserData):
             return NotImplemented
         return self.compare_fields() == other.compare_fields()
-    
-    def __hash__(self) -> int:
-        """Make UserData hashable for use in sets and as dict keys."""
-        return hash(self.compare_fields())
