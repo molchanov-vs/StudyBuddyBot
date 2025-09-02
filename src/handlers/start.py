@@ -60,6 +60,14 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
         await start_dialog(dialog_manager, current_state)
 
 
+@router.callback_query(F.data == "flow")
+async def run_flow(callback: CallbackQuery, dialog_manager: DialogManager) -> None:
+
+    _, config, user_data = get_middleware_data(dialog_manager)
+    current_state = get_current_state(dialog_manager, config, user_data.id)
+    await start_dialog(dialog_manager, current_state, show_mode=ShowMode.SEND)
+
+
 @router.errors(ExceptionTypeFilter(UnknownIntent))
 async def on_unknown_intent(event: ErrorEvent, dialog_manager: DialogManager):
     """Handle UnknownIntent Error and start a new dialog."""

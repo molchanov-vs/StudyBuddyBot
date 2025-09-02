@@ -15,7 +15,7 @@ from ..custom_types import UserData, UserAction
 from ..config import Config
 from ..states import Admin, Onboarding
 
-from ..utils.pusher import run_pusher
+from ..utils.pusher import run_pusher, finish_onboarding
 from ..utils.utils import get_middleware_data
 
 from my_tools import get_users, Langs, get_time_delta
@@ -112,6 +112,8 @@ async def dialog_get_data(
     if not res and user_data.id in config.superadmins.ids:
         data["run_pusher"] = True
 
+    data["finish_onboarding"] = True
+
     return data
 
 
@@ -124,6 +126,13 @@ dialog = Dialog(
         Const("--------------------"),
         Format("{users}"),
 
+        Button(
+            text=Format("🔥 Finish onboarding"),
+            id="finish_onboarding_id",
+            on_click=finish_onboarding,
+            when="finish_onboarding"
+        ),
+        
         # Button(
         #     text=Format("🔥 Run pusher ({value_counter})"),
         #     id="run_pusher_id",

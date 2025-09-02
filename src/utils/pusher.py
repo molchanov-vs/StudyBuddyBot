@@ -28,6 +28,43 @@ if TYPE_CHECKING:
     from ..locales.stub import TranslatorRunner
 
 
+
+async def finish_onboarding(
+        callback: CallbackQuery, 
+        button: Button, 
+        dialog_manager: DialogManager
+        ):
+
+    bot, _, _ = get_middleware_data(dialog_manager)
+    temp: RedisStorage = dialog_manager.middleware_data.get(Database.TEMP)
+
+    set_of_users: set[int] = await temp.redis.smembers("onboarding_users")
+    logging.warning(f"Finish onboarding for {set_of_users} users")
+
+    start_btn = InlineKeyboardButton(
+        text="Да, продолжим!",
+        callback_data="flow"
+    )
+
+    for user in set_of_users:
+
+        try:
+            await bot.send_message(
+                    chat_id=user, 
+                    text="Привет!\nВижу, твой профиль еще не заполнен до конца. Продолжим?\n\nЭто займет не больше 5 минут, но поможет преподавателям и однокурсникам лучше тебя узнать",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[[start_btn]])
+                    )
+            logging.warning(f"Finish onboarding for {user}")
+
+        except Exception as e:
+            logging.warning(f"Can't send finish message for {user}")
+            logging.exception(f"{e}")
+
+        finally:
+            await temp.redis.srem("onboarding_users", user)
+            await asyncio.sleep(1)
+
+
 async def run_pusher(
         callback: CallbackQuery, 
         button: Button, 
