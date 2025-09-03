@@ -41,6 +41,14 @@ async def finish_onboarding(
     set_of_users: set[int] = await temp.redis.smembers("onboarding_users")
     logging.warning(f"Finish onboarding for {set_of_users} users")
 
+    message_text_bytes = await temp.redis.get("finish_onboarding_message")
+
+    if message_text_bytes:
+        message_text = message_text_bytes.decode("utf-8")
+    else:
+        message_text = "Привет!\nВижу, твой профиль еще не заполнен до конца. Продолжим?\n\nЭто займет не больше 5 минут, но поможет преподавателям и однокурсникам лучше тебя узнать"
+
+
     start_btn = InlineKeyboardButton(
         text="Да, продолжим!",
         callback_data="flow"
@@ -51,7 +59,7 @@ async def finish_onboarding(
         try:
             await bot.send_message(
                     chat_id=user, 
-                    text="Привет!\nВижу, твой профиль еще не заполнен до конца. Продолжим?\n\nЭто займет не больше 5 минут, но поможет преподавателям и однокурсникам лучше тебя узнать",
+                    text=message_text,
                     reply_markup=InlineKeyboardMarkup(inline_keyboard=[[start_btn]])
                     )
             logging.warning(f"Finish onboarding for {user}")
