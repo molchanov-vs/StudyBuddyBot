@@ -63,7 +63,7 @@ onboarding-thanks_btn = Супер! Спасибо за твои ответы �
 
 # 2_menu
 menu-menu_btn = ☰ Меню
-menu-menu_header = ☰ Меню
+menu-menu_header = ----- ☰ Меню ----
 menu-student_gallery_btn = Галерея студентов
 menu-teacher_gallery_btn = Галерея преподавателей
 menu-schedule_btn = Расписание

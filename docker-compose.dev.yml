@@ -12,7 +12,7 @@ services:
       retries: 3
     restart: unless-stopped
     networks:
-      - studybuddybot-network-dev
+      - dev-network
 
   # Main bot application
   bot:
@@ -27,33 +27,28 @@ services:
       - ./src/locales:/app/src/locales
       - ./logs_test:/app/logs
       - ./media_test:/app/media
+      - ./studybuddybot-471111-f80d6e34ca47.json:/app/studybuddybot-471111-f80d6e34ca47.json
     ports:
       - "8001:8000"  # Different port to avoid conflict with prod
     environment:
-      
-      # Bot configuration environment
+      - TZ=Europe/Moscow
       - BOT_CONFIG=bot_test
-      
-      # Development flags
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/studybuddybot-471111-f80d6e34ca47.json
       - DEVELOPMENT=true
     depends_on:
       redis:
         condition: service_healthy
     command: >
       sh -c "
-        echo 'Waiting for Redis to be ready...' &&
-        while ! redis-cli -h redis ping > /dev/null 2>&1; do
-          sleep 1
-        done &&
-        echo 'Redis is ready!' &&
+        echo '########################################################'
         echo 'Starting bot in development mode...' &&
         python bot.py
       "
     restart: "no"
     networks:
-      - studybuddybot-network-dev
+      - dev-network
 
 networks:
-  studybuddybot-network-dev:
-    name: studybuddybot-network-dev
+  dev-network:
+    name: dev-network
     driver: bridge

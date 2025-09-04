@@ -10,6 +10,7 @@ from aiogram_dialog import setup_dialogs
 from src.handlers.start import router as start_router
 from src.dialogs.admin import dialog as admin_dialog
 from src.dialogs.onboarding import dialog as onboarding_dialog
+from src.dialogs.menu import dialog as menu_dialog
 
 from src.config import Config
 
@@ -23,7 +24,8 @@ router = Router()
 router.include_routers(
     start_router,
     onboarding_dialog,
-    admin_dialog
+    admin_dialog,
+    menu_dialog
 )
 
 async def setup_bot(config: Config) -> Bot:

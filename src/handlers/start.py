@@ -13,11 +13,14 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 
 from my_tools import DialogManagerKeys
 
-from ..states import Admin, Onboarding
+from ..custom_types import Student
+
+from ..states import Admin, Onboarding, Flow
 from ..enums import Database, Action
-from ..utils.utils import get_middleware_data, AFTER_MESSAGES
+from ..utils.utils import get_middleware_data
 from ..queries import add_action
 from ..config import Config
+from ..google_queries import get_students
 
 from fluentogram import TranslatorHub
 
@@ -51,13 +54,18 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
     await add_action(dialog_manager, Action.START)
 
     current_state = get_current_state(dialog_manager, config, user_data.id)
-    if current_state == Onboarding.THANKS:
+    # if current_state == Onboarding.THANKS:
         
-        await message.answer(text=random.choice(AFTER_MESSAGES))
+    #     await add_action(dialog_manager, Flow.MENU)
     
-    else:
+    # else:
     
-        await start_dialog(dialog_manager, current_state)
+    #     await start_dialog(dialog_manager, current_state)
+
+    students: list[Student] = await get_students(config)
+    print("students:\n", students)
+
+    await start_dialog(dialog_manager, Flow.MENU)
 
 
 @router.callback_query(F.data == "flow")

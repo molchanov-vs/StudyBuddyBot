@@ -8,3 +8,7 @@ watchdog==6.0.0
 httpx==0.28.1
 git+https://github.com/molchanov-vs/my_tools.git@bb255b7
 aiofiles==24.1.0
+google-api-python-client==2.179.0
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
+google-auth-httplib2==0.2.0

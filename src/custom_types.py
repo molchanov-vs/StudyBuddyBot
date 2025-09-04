@@ -4,6 +4,18 @@ from pydantic import PositiveInt, Field
 from my_tools import get_datetime_now
 
 
+class Student(BaseModel):
+
+    id: PositiveInt
+    name: str
+
+
+class Teacher(BaseModel):
+
+    id: PositiveInt
+    name: str
+
+
 class UserNotify(BaseModel):
 
     id: PositiveInt

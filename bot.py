@@ -79,7 +79,7 @@ if __name__ == "__main__":
     try:
         update_locales()
         subprocess.run(["fluentogram", "-f", "src/locales/ru/txt.ftl", "-o", "src/locales/stub.pyi"])
-        print("\n\nLocales has been updated\n\n")
+        print("\nLocales has been updated\n")
     except Exception as e:
         print(f"Warning: Could not update locales: {e}")
         print("Continuing without locale update...")
