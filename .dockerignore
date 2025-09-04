@@ -1,0 +1,59 @@
+# =====================
+#  Общие исключения
+# =====================
+
+# Python артефакты
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.eggs/
+
+# Виртуальные окружения
+.venv/
+venv/
+
+# Логи и временные файлы
+*.log
+logs/
+tmp/
+
+# IDE / редакторы / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker файлы (оставляем только нужный Dockerfile)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Env и секреты
+.env
+*.env
+*.pem
+*.key
+*.crt
+
+# =====================
+#  Только для DEV
+# =====================
+# Эти файлы не нужны в проде, но могут быть примонтированы как volume
+logs_test/
+media_test/
+tests/
+*.pytest_cache/
+
+# =====================
+#  Только для PROD
+# =====================
+# Конфиги и чувствительные данные лучше не вшивать в образ
+config.yaml
+media/

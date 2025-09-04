@@ -1,27 +1,26 @@
-FROM python:3.12-bookworm
+FROM python:3.12-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    ntpdate \
-    locales \
-    nano \
-    vim \
-    curl \
+# Install minimal system dependencies needed at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
     redis-tools \
-    cmake \
-    build-essential \
-    libboost-all-dev \
-    libopencv-dev \
-    libblas-dev \
-    liblapack-dev \
-    libatlas-base-dev \
-    gfortran \
+    nano \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Install development dependencies
+RUN pip install \
+    ipython \
+    pytest \
+    pytest-asyncio \
+    black \
+    flake8 \
+    mypy
 
 # Create app directory
 WORKDIR /app
@@ -30,25 +29,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Install development dependencies
-RUN pip install --no-cache-dir \
-    watchdog \
-    ipython \
-    pytest \
-    pytest-asyncio \
-    black \
-    flake8 \
-    mypy
-
-# Create necessary directories
-RUN mkdir -p /app/logs /app/media
-
-# Copy source code
-COPY . .
-
-# Make scripts executable
-RUN chmod +x setup.sh
 
 # Expose port
 EXPOSE 8000

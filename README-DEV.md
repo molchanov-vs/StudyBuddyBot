@@ -96,6 +96,8 @@ The development environment includes the following services:
 - **Access**: Port 8081 (use your remote PC's IP if accessing from another machine)
 - **Start**: `./dev.sh redis-ui`
 
+
+
 ## Environment Variables
 
 The following environment variables are automatically set in the development environment:

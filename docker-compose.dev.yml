@@ -4,8 +4,6 @@ services:
     image: redis:8.2-alpine
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -14,7 +12,7 @@ services:
       retries: 3
     restart: unless-stopped
     networks:
-      - studybuddybot-network
+      - studybuddybot-network-dev
 
   # Main bot application
   bot:
@@ -22,28 +20,21 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     volumes:
-      # Mount source code for hot reloading
-      - .:/app
-      # Mount logs directory
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./bot.py:/app/bot.py
+      - ./config.yaml:/app/config.yaml
+      - ./src/locales:/app/src/locales
       - ./logs_test:/app/logs
-      # Mount media directory for user files
       - ./media_test:/app/media
     ports:
       - "8001:8000"  # Different port to avoid conflict with prod
     environment:
-      # Python environment
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app
       
       # Bot configuration environment
       - BOT_CONFIG=bot_test
       
-      # System configuration
-      - TIME_ZONE=${TIME_ZONE:-Europe/Moscow}
-      
       # Development flags
-      - DEBUG=true
       - DEVELOPMENT=true
     depends_on:
       redis:
@@ -60,12 +51,9 @@ services:
       "
     restart: "no"
     networks:
-      - studybuddybot-network
-
-volumes:
-  redis_data:
-    driver: local
+      - studybuddybot-network-dev
 
 networks:
-  studybuddybot-network:
+  studybuddybot-network-dev:
+    name: studybuddybot-network-dev
     driver: bridge
