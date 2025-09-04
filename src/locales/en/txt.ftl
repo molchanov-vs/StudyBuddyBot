@@ -36,3 +36,12 @@ onboarding-step_5 =
 onboarding-step_6 = 
 onboarding-thanks_btn = 
 
+
+# 2_menu
+menu-menu_btn = 
+menu-menu_header = 
+menu-student_gallery_btn = 
+menu-teacher_gallery_btn = 
+menu-schedule_btn = 
+menu-my_profile_btn = 
+

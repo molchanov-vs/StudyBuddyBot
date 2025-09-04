@@ -38,7 +38,7 @@ async def finish_onboarding(
     bot, _, _ = get_middleware_data(dialog_manager)
     temp: RedisStorage = dialog_manager.middleware_data.get(Database.TEMP)
 
-    set_of_users: set[int] = await temp.redis.smembers("onboarding_users")
+    set_of_users: set[int] = await temp.redis.smembers("onboding_users")
     logging.warning(f"Finish onboarding for {set_of_users} users")
 
     message_text_bytes = await temp.redis.get("finish_onboarding_message")

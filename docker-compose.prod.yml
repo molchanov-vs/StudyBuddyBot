@@ -26,6 +26,7 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./media:/app/media
+      - ./src/locales:/app/src/locales
     depends_on:
       - redis
     networks:

@@ -73,6 +73,9 @@ async def main() -> None:
 
 if __name__ == "__main__":
 
+    # Force locale update if environment variable is set
+    force_update = os.getenv('FORCE_LOCALE_UPDATE', 'false').lower() == 'true'
+    
     try:
         update_locales()
         subprocess.run(["fluentogram", "-f", "src/locales/ru/txt.ftl", "-o", "src/locales/stub.pyi"])

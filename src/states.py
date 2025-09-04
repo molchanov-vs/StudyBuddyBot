@@ -24,3 +24,12 @@ class Onboarding(StatesGroup):
     STEP_5 = State()
     STEP_6 = State()
     THANKS = State()
+
+
+class Flow(StatesGroup):
+
+    MENU = State()
+    STUDENT_GALLERY = State()
+    TEACHER_GALLERY = State()
+    SCHEDULE = State()
+    MY_PROFILE = State()

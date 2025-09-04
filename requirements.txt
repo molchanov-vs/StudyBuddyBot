@@ -7,6 +7,4 @@ fluentogram==1.2.1
 watchdog==6.0.0
 httpx==0.28.1
 git+https://github.com/molchanov-vs/my_tools.git@bb255b7
-setuptools==80.9.0
-face-recognition==1.3.0
 aiofiles==24.1.0

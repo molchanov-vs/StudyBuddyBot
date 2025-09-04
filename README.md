@@ -203,5 +203,4 @@ for user in users:
     history = [MessageForGPT.model_validate_json(h).model_dump() for h in history_raw]
     with open(f"./dump/{user}/history.json", 'w', encoding="utf-8") as f:
         json.dump(history, f, indent=4, ensure_ascii=False)
-
 ```
