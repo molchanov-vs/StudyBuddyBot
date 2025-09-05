@@ -56,8 +56,16 @@ async def get_students(config: Config) -> list[Student]:
     Get list of students from Google Sheets.
     """
     sheet: SheetsAsync = get_students_sheets_instance(config)
-    read_res = await sheet.read(f"{config.google.vitrina_tab}!A1:B")
-    return read_res.get("values")[1:]
+    read_res = await sheet.read(f"{config.google.vitrina_tab}!A1:N")
+
+    for ind, row in enumerate(read_res.get("values")[2:]):
+        print(f"{ind+1}. {row}")
+
+    students: list[Student] = [
+        Student(id=row[0], name=row[1], slogan=row[6], prof_experience=row[7], about=row[8], tags=row[10], expectations=row[13])
+        for row in read_res.get("values")[2:] if len(row) > 13]
+
+    return sorted(students, key=lambda x: x.name.split()[1])
 
 
 # Teachers spreadsheet operations
@@ -131,12 +139,13 @@ async def get_syllabus(
 
 
 
-async def get_data_for_dialog(
+async def get_start_data_for_dialog(
         config: Config,
-        teachers: list[Teacher],
         user_id: int) -> dict[str, dict[str, dict[str, str]]]:
 
     dialog_data: dict = {}
+
+    students: list[Student] = await get_students(config)
 
     disciplines: list[tuple[str, str]] = await get_list_of_disciplines(config, teachers, user_id)
     syllabus: list[tuple[str, str]] = await get_syllabus(config, disciplines)

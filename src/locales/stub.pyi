@@ -11,6 +11,7 @@ class TranslatorRunner:
     service: Service
     onboarding: Onboarding
     menu: Menu
+    students: Students
 
 class Service:
     @staticmethod
@@ -119,3 +120,7 @@ class Menu:
     def schedule_btn() -> Literal["""Расписание"""]: ...
     @staticmethod
     def my_profile_btn() -> Literal["""Мой профиль"""]: ...
+
+class Students:
+    @staticmethod
+    def students_header() -> Literal["""----- Галерея студентов ----"""]: ...

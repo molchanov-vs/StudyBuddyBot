@@ -1,10 +1,16 @@
 from typing import TYPE_CHECKING
 
+from aiogram.types import CallbackQuery
+
 from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row, Next, Back
+from aiogram_dialog.widgets.kbd import Button, Start
 from aiogram_dialog.widgets.text import Format
 
-from ..states import Flow
+from ..states import Flow, StudentGallery
+from ..custom_types import Student
+from ..google_queries import get_students, get_start_data_for_dialog
+
+from ..utils.utils import get_middleware_data
 
 from fluentogram import TranslatorRunner
 
@@ -31,10 +37,30 @@ async def dialog_get_data(
 
 
 
+# Callback handlers for the buttons
+async def start_student_gallery(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+
+    _,config, _ = get_middleware_data(dialog_manager)
+    students: list[Student] = await get_students(config)
+
+    await dialog_manager.start(
+        state=StudentGallery.SCROLL_LIST,
+        data={
+            "students": [s.model_dump() for s in students]
+            }
+        )
+
+
 dialog = Dialog(
     Window(
         Format("{menu_header}"),
-        Button(Format("{student_gallery_btn}"), id="student_gallery_btn_id"),
+
+        Button(
+            Format("{student_gallery_btn}"), 
+            id="student_gallery_btn_id", 
+            on_click=start_student_gallery
+            ),
+
         Button(Format("{teacher_gallery_btn}"), id="teacher_gallery_btn_id"),
         Button(Format("{schedule_btn}"), id="schedule_btn_id", when="schedule"),
         Button(Format("{my_profile_btn}"), id="my_profile_btn_id"),

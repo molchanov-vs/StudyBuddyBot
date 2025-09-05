@@ -13,14 +13,11 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 
 from my_tools import DialogManagerKeys
 
-from ..custom_types import Student
-
 from ..states import Admin, Onboarding, Flow
 from ..enums import Database, Action
 from ..utils.utils import get_middleware_data
 from ..queries import add_action
 from ..config import Config
-from ..google_queries import get_students
 
 from fluentogram import TranslatorHub
 
@@ -54,16 +51,13 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
     await add_action(dialog_manager, Action.START)
 
     current_state = get_current_state(dialog_manager, config, user_data.id)
-    # if current_state == Onboarding.THANKS:
+    # # if current_state == Onboarding.THANKS:
         
-    #     await add_action(dialog_manager, Flow.MENU)
+    # #     await add_action(dialog_manager, Flow.MENU)
     
-    # else:
+    # # else:
     
-    #     await start_dialog(dialog_manager, current_state)
-
-    students: list[Student] = await get_students(config)
-    print("students:\n", students)
+    # #     await start_dialog(dialog_manager, current_state)
 
     await start_dialog(dialog_manager, Flow.MENU)
 
@@ -113,6 +107,7 @@ async def handle_error_and_restart(event: ErrorEvent, dialog_manager: DialogMana
 async def start_dialog(
         dialog_manager: DialogManager, 
         state: Onboarding,
+        start_data: dict[str, Any] | None = None,
         mode: StartMode = StartMode.RESET_STACK,
         show_mode=ShowMode.DELETE_AND_SEND
         ):
@@ -120,5 +115,6 @@ async def start_dialog(
     await dialog_manager.start(
         state=state, 
         mode=mode,
-        show_mode=show_mode
+        show_mode=show_mode,
+        data=start_data
         )

@@ -1,4 +1,4 @@
-# from typing import TYPE_CHECKING
+# from typing import Any, TYPE_CHECKING
 
 # from aiogram_dialog import Dialog, Window, DialogManager
 # from aiogram_dialog.widgets.kbd import Button, Row, Next, Back
@@ -10,19 +10,27 @@
 #     from ..locales.stub import TranslatorRunner
 
 
+# async def on_dialog_start(
+#         start_data: Any,
+#         dialog_manager: DialogManager):
+
+#     pass
+
+
 # async def dialog_get_data(
 #         i18n: TranslatorRunner,
 #         dialog_manager: DialogManager,
 #         **kwargs):
 
-#         data: dict[str, str] = {}
+    # data: dict[str, str] = {}
 
-#         return data
+    # return data
 
 
 
 # dialog = Dialog(
 #     Window(
 #     ),
-#     getter=dialog_get_data
+#     getter=dialog_get_data,
+#     on_start=on_dialog_start
 # )

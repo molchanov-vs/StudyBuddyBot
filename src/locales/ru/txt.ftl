@@ -69,3 +69,7 @@ menu-teacher_gallery_btn = Галерея преподавателей
 menu-schedule_btn = Расписание
 menu-my_profile_btn = Мой профиль
 
+
+# 3_students
+students-students_header = ----- Галерея студентов ----
+

@@ -33,3 +33,10 @@ class Flow(StatesGroup):
     TEACHER_GALLERY = State()
     SCHEDULE = State()
     MY_PROFILE = State()
+
+
+class StudentGallery(StatesGroup):
+
+    SCROLL_LIST = State()
+    PROFILE = State()
+    EDIT_PROFILE = State()

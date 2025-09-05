@@ -1,5 +1,7 @@
 from pydantic import BaseModel, field_validator, ValidationInfo
 from pydantic import PositiveInt, Field
+from typing import Any
+import re
 
 from my_tools import get_datetime_now
 
@@ -8,6 +10,34 @@ class Student(BaseModel):
 
     id: PositiveInt
     name: str
+    slogan: str | None = Field(default=None)
+    prof_experience: str | None = Field(default=None)
+    about: str | None = Field(default=None)
+    tags: list[str] | None = Field(default=None)
+    expectations: str | None = Field(default=None)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def parse_tags(cls, v: Any):
+
+        if v is None:
+            return None
+
+        parts: list[str] = []
+
+        if isinstance(v, str):
+            parts = re.split(r"[,\n]+", v)
+        elif isinstance(v, list):
+            for item in v:
+                if isinstance(item, str):
+                    parts.extend(re.split(r"[,\n]+", item))
+                elif item is not None:
+                    parts.append(str(item))
+        else:
+            return v
+
+        cleaned = [s.strip().lower() for s in parts if isinstance(s, str) and s.strip()]
+        return cleaned or None
 
 
 class Teacher(BaseModel):
