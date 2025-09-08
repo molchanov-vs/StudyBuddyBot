@@ -1,7 +1,7 @@
 import os
 
 from logging import basicConfig, Formatter, getLogger, \
-    WARNING, INFO
+    WARNING, INFO, DEBUG
 
 from datetime import datetime
 import pytz
@@ -21,7 +21,7 @@ def start_logging(time_zone):
     Formatter.converter = lambda *args: datetime.now(tz=tz).timetuple()
     basicConfig(
         filename=path_to_log_file,
-        level=INFO, # WARNING
+        level=DEBUG,  # Changed to DEBUG to see debug messages
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt='%Y-%m-%d %H:%M:%S'
         )

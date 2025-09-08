@@ -29,13 +29,10 @@ async def flush_redis_databases(config: Config) -> None:
             redis_client = redis.Redis.from_url(config.redis.fsm, decode_responses=True)
             
             # Flush all databases (0, 1, 2, 3)
-            for db_num in range(4):
-                await redis_client.select(db_num)
-                await redis_client.flushdb()
-                logger.info(f"Flushed Redis database {db_num}")
+            await redis_client.flushall()
+            logger.info(f"FLUSHED Redis")
             
             await redis_client.aclose()
-            logger.warning("All Redis databases flushed in development mode!")
             
         except Exception as e:
             logger.error(f"Failed to flush Redis databases: {e}")

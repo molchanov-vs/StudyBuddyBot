@@ -5,12 +5,7 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+    restart: no
     networks:
       - dev-network
 
@@ -35,9 +30,6 @@ services:
       - BOT_CONFIG=bot_test
       - GOOGLE_APPLICATION_CREDENTIALS=/app/studybuddybot-471111-f80d6e34ca47.json
       - DEVELOPMENT=true
-    depends_on:
-      redis:
-        condition: service_healthy
     command: >
       sh -c "
         echo '########################################################'

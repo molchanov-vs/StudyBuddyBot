@@ -56,14 +56,22 @@ async def get_students(config: Config) -> list[Student]:
     Get list of students from Google Sheets.
     """
     sheet: SheetsAsync = get_students_sheets_instance(config)
-    read_res = await sheet.read(f"{config.google.vitrina_tab}!A1:N")
-
-    for ind, row in enumerate(read_res.get("values")[2:]):
-        print(f"{ind+1}. {row}")
+    read_res = await sheet.read(f"{config.google.vitrina_tab}!A1:O")
 
     students: list[Student] = [
-        Student(id=row[0], name=row[1], slogan=row[6], prof_experience=row[7], about=row[8], tags=row[10], expectations=row[13])
-        for row in read_res.get("values")[2:] if len(row) > 13]
+        Student(id=row[0], name=row[1], username=row[2], slogan=row[7], prof_experience=row[8], about=row[9], tags=row[11], expectations=row[14])
+        for row in read_res.get("values")[2:] if len(row) > 14]
+
+    if len(students) == 0:
+        # Handle case where no students are available
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("No students available in get_students")
+        return {"error": "No students available"}
+
+    # Apply character limits to all students
+    for student in students:
+        student.validate_for_message()  # Use message limit (4096 chars)
 
     return sorted(students, key=lambda x: x.name.split()[1])
 

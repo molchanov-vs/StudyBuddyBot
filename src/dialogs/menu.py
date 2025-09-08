@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from glob import glob
+
 from aiogram.types import CallbackQuery
 
 from aiogram_dialog import Dialog, Window, DialogManager
@@ -42,6 +44,11 @@ async def start_student_gallery(callback: CallbackQuery, button: Button, dialog_
 
     _,config, _ = get_middleware_data(dialog_manager)
     students: list[Student] = await get_students(config)
+
+    all_images: list[str] = glob("./media/*/onboarding/4_*")
+
+    for student in students:
+        student.get_latest_image_path(all_images)
 
     await dialog_manager.start(
         state=StudentGallery.SCROLL_LIST,

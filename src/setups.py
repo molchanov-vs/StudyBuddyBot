@@ -1,4 +1,5 @@
 from aiogram import Bot, Dispatcher, Router
+import os
 
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
@@ -17,6 +18,8 @@ from src.config import Config
 
 from src.middlewares.redis_storage import RedisStorageMiddleware
 from src.middlewares.i18n import TranslatorRunnerMiddleware
+
+from sulguk import AiogramSulgukMiddleware
 
 from src.enums import Database
 
@@ -42,8 +45,10 @@ async def setup_bot(config: Config) -> Bot:
     main_menu_commands = [
         BotCommand(command='/start', description='🚀 Start')
         ]
-    await bot.set_my_commands(main_menu_commands)
-    await bot.delete_webhook(drop_pending_updates=True)
+
+    if os.getenv('DEVELOPMENT', 'false').lower() == 'true':
+        await bot.set_my_commands(main_menu_commands)
+        await bot.delete_webhook(drop_pending_updates=True)
 
     return bot
 
@@ -71,6 +76,7 @@ async def setup_dispathcer(config: Config) -> Dispatcher:
     dp.update.middleware.register(RedisStorageMiddleware(storage=fsm, db_name=Database.FSM))
     dp.update.middleware.register(RedisStorageMiddleware(storage=users, db_name=Database.USERS))
     dp.update.middleware.register(RedisStorageMiddleware(storage=temp, db_name=Database.TEMP))
+    dp.update.middleware(AiogramSulgukMiddleware())
 
     dp.update.middleware(TranslatorRunnerMiddleware())
 
