@@ -22,6 +22,7 @@ class Student(BaseModel):
     expectations: str | None = Field(default=None)
     image_file_id: str | None = Field(default=None)
     image_path: str | None = Field(default=None)
+    row: PositiveInt
 
     @field_validator("tags", mode="before")
     @classmethod

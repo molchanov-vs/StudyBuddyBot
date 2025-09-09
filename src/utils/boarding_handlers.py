@@ -99,10 +99,17 @@ async def correct_name_handler(
     gender = determine_russian_name_gender(text)
     dialog_manager.dialog_data["gender"] = gender
 
-    await write_txt_file(text, user_data.id)
+    current_state = dialog_manager.current_context().state
 
-    await add_action(dialog_manager)
-    await dialog_manager.next()
+    if current_state == Onboarding.NAME:
+        await write_txt_file(text, user_data.id)
+        await add_action(dialog_manager)
+        await dialog_manager.next()
+
+    else:
+        dialog_manager.dialog_data["student"]["name"] = text
+        dialog_manager.dialog_data["edit_mode"] = True
+        print(dialog_manager.dialog_data["student"])
 
 
 async def error_name_handler(

@@ -40,3 +40,15 @@ class StudentGallery(StatesGroup):
     SCROLL_LIST = State()
     PROFILE = State()
     EDIT_PROFILE = State()
+
+
+class EditMode(StatesGroup):
+
+    MAIN = State()
+    EDIT_PHOTO = State()
+    EDIT_NAME = State()
+    EDIT_SLOGAN = State()
+    EDIT_PROF_EXPERIENCE = State()
+    EDIT_ABOUT = State()
+    EDIT_TAGS = State()
+    EDIT_EXPECTATIONS = State()

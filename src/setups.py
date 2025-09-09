@@ -13,6 +13,7 @@ from src.dialogs.admin import dialog as admin_dialog
 from src.dialogs.onboarding import dialog as onboarding_dialog
 from src.dialogs.menu import dialog as menu_dialog
 from src.dialogs.students import dialog as students_dialog
+from src.dialogs.edit_mode import dialog as edit_mode_dialog
 
 from src.config import Config
 
@@ -30,7 +31,8 @@ router.include_routers(
     onboarding_dialog,
     admin_dialog,
     menu_dialog,
-    students_dialog
+    students_dialog,
+    edit_mode_dialog
 )
 
 async def setup_bot(config: Config) -> Bot:

@@ -49,3 +49,15 @@ menu-my_profile_btn =
 # 3_students
 students-students_header = 
 
+
+# 4_edit
+edit-edit_header = 
+edit-edit_btn = 
+edit-edit_photo_btn = 
+edit-edit_name_btn = 
+edit-edit_slogan_btn = 
+edit-edit_prof_experience_btn = 
+edit-edit_about_btn = 
+edit-edit_tags_btn = 
+edit-edit_expectations_btn = 
+

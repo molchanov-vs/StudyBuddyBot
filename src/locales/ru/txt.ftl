@@ -73,3 +73,15 @@ menu-my_profile_btn = Мой профиль
 # 3_students
 students-students_header = ----- Галерея студентов ----
 
+
+# 4_edit
+edit-edit_header = Выбери, что хочешь изменить:
+edit-edit_btn = ✏️
+edit-edit_photo_btn = ✏️ фото
+edit-edit_name_btn = ✏️ имя
+edit-edit_slogan_btn = ✏️ слоган
+edit-edit_prof_experience_btn = ✏️ профессиональный опыт
+edit-edit_about_btn = ✏️ о себе
+edit-edit_tags_btn = ✏️ теги
+edit-edit_expectations_btn = ✏️ ожидания
+

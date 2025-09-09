@@ -3,7 +3,7 @@ from typing import Any, TYPE_CHECKING
 from aiogram.types import CallbackQuery
 from aiogram.enums import ContentType
 
-from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import Dialog, Window, DialogManager, Data
 from aiogram_dialog.widgets.kbd import Select, Back, Row, Button
 from aiogram_dialog.widgets.text import Format, Jinja
 from aiogram_dialog.widgets.media import StaticMedia
@@ -12,7 +12,7 @@ from ..widgets.scrolling_group import CustomScrollingGroup
 
 from ..utils.utils import get_middleware_data
 
-from ..states import StudentGallery
+from ..states import StudentGallery, EditMode
 from ..custom_types import Student
 
 from aiogram.enums import ParseMode
@@ -26,7 +26,13 @@ async def on_dialog_start(
         start_data: Any,
         dialog_manager: DialogManager):
 
+    print("on_start")
+
     dialog_manager.dialog_data["students"] = start_data["students"]
+    dialog_manager.dialog_data["current_user_id"] = start_data.get("current_user_id", 0)
+    dialog_manager.dialog_data["current_student_index"] = start_data.get("indexes", (0, 0, 0))[0]
+    dialog_manager.dialog_data["back_student_index"] = start_data.get("indexes", (0, 0, 0))[1]
+    dialog_manager.dialog_data["next_student_index"] = start_data.get("indexes", (0, 0, 0))[2]
 
 
 async def dialog_get_data(
@@ -34,10 +40,13 @@ async def dialog_get_data(
         dialog_manager: DialogManager,
         **kwargs):
 
+    print("dialog_get_data")
+
     data: dict[str, str] = {}
     data.update({
         "students_header": i18n.students.students_header(),
         "back_btn": i18n.service.back_btn(),
+        "edit_btn": i18n.edit.edit_btn(),
     })
 
     return data
@@ -102,6 +111,8 @@ async def get_data_for_profile(
     dialog_manager: DialogManager,
     **kwargs):
 
+
+    print("get_data_for_profile")
     students: list[Student] = prepare_list_of_students(dialog_manager)
     data = {}
 
@@ -136,6 +147,11 @@ async def get_data_for_profile(
         current_student.image_path
         })
 
+    if current_student.id == dialog_manager.dialog_data.get("current_user_id", 0):
+        data.update({"edit_btn_true": True})
+
+    
+    dialog_manager.dialog_data["current_student_data"] = current_student.model_dump()
 
     return data
 
@@ -167,12 +183,38 @@ async def process_carousel(callback: CallbackQuery, button: Button, dialog_manag
     update_indexes(dialog_manager, callback, len(students))
 
 
+async def start_edit_mode(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+
+    await dialog_manager.start(
+        state=EditMode.MAIN,
+        data={
+            "current_student_data": dialog_manager.dialog_data.get("current_student_data", {}),
+        }
+    )
+
 NAME_TEXT_WITH_USERNAME = Jinja("""
 <a href="{{ student_name[1] }}"> {{ student_name[0] }}</a>
 """)
 
 
+async def on_process_result(
+    start_data: Data,
+    result: Any,
+    dialog_manager: DialogManager):
+
+    print("result", result)
+
+    student: dict = result.get("student")
+    students: list[dict] = dialog_manager.dialog_data.get("students")
+
+    for s in students:
+        if s.get("id") == student.get("id"):
+            s.update(student)
+            break
+
+
 dialog = Dialog(
+
     Window(
         Format("{students_header}"),
 
@@ -195,7 +237,6 @@ dialog = Dialog(
         state=StudentGallery.SCROLL_LIST
     ),
 
-
     Window(
         StaticMedia(
             path=Format("{student_image}"),
@@ -204,7 +245,11 @@ dialog = Dialog(
         NAME_TEXT_WITH_USERNAME,
         Format("{formatted_caption}"),
         Format("{student_tags}"),
-        Back(Format("{back_btn}")),
+        Row(
+            Back(Format("{back_btn}")),
+            Button(Format("{edit_btn}"), id="edit_btn_id", when="edit_btn_true", on_click=start_edit_mode)
+        ),
+        
         Row(
             Button(Format("{back_student}"), id="back_student_id", on_click=process_carousel),
             Button(Format("{next_student}"), id="next_student_id", on_click=process_carousel),
@@ -215,5 +260,6 @@ dialog = Dialog(
     ),
 
     getter=dialog_get_data,
-    on_start=on_dialog_start
+    on_start=on_dialog_start,
+    on_process_result=on_process_result
 )
