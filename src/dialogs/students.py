@@ -26,8 +26,6 @@ async def on_dialog_start(
         start_data: Any,
         dialog_manager: DialogManager):
 
-    print("on_start")
-
     dialog_manager.dialog_data["students"] = start_data["students"]
     dialog_manager.dialog_data["current_user_id"] = start_data.get("current_user_id", 0)
     dialog_manager.dialog_data["current_student_index"] = start_data.get("indexes", (0, 0, 0))[0]
@@ -39,8 +37,6 @@ async def dialog_get_data(
         i18n: TranslatorRunner,
         dialog_manager: DialogManager,
         **kwargs):
-
-    print("dialog_get_data")
 
     data: dict[str, str] = {}
     data.update({
@@ -63,7 +59,6 @@ def prepare_list_of_students(dialog_manager: DialogManager) -> list[Student]:
 async def get_students (
     dialog_manager: DialogManager, 
     **kwargs):
-
 
     _, _, user_data = get_middleware_data(dialog_manager)
 
@@ -111,8 +106,8 @@ async def get_data_for_profile(
     dialog_manager: DialogManager,
     **kwargs):
 
+    _, config, user_data = get_middleware_data(dialog_manager)
 
-    print("get_data_for_profile")
     students: list[Student] = prepare_list_of_students(dialog_manager)
     data = {}
 
@@ -127,7 +122,8 @@ async def get_data_for_profile(
     next_student: Student = students[next_student_index]
 
     # Get validated formatted caption (guaranteed to be within limits)
-    formatted_caption: str = current_student.get_validated_formatted_caption()
+    # slogan, about, prof_experience, expectations
+    formatted_caption: dict[str, str] = current_student.get_formatted_caption_components()
     
     # Add tags formatting (not included in Student class as it's optional)
     student_tags = f"\n#{' #'.join(current_student.tags)}" if current_student.tags else ""
@@ -136,7 +132,10 @@ async def get_data_for_profile(
 
     data.update({
         "student_name": (current_student.name, current_student.username),
-        "formatted_caption": f"<blockquote expandable>{formatted_caption}</blockquote>",  # Already formatted and validated
+        "student_slogan": f"<i>{formatted_caption["student_slogan"].strip()}</i>",
+        "student_about": f"<blockquote expandable>{formatted_caption["student_about"].strip()}</blockquote>",
+        "student_prof_experience": f"<blockquote expandable>{formatted_caption["student_prof_experience"].strip()}</blockquote>",
+        "student_expectations": f"<i>{formatted_caption["student_expectations"].strip()}</i>",
         "student_tags": student_tags,
         "back_student": f"{back_student.get_display_name()}",
         "next_student": f"{next_student.get_display_name()}"
@@ -147,7 +146,7 @@ async def get_data_for_profile(
         current_student.image_path
         })
 
-    if current_student.id == dialog_manager.dialog_data.get("current_user_id", 0):
+    if current_student.id == dialog_manager.dialog_data.get("current_user_id", 0) or user_data.id in config.admins.ids:
         data.update({"edit_btn_true": True})
 
     
@@ -202,8 +201,6 @@ async def on_process_result(
     result: Any,
     dialog_manager: DialogManager):
 
-    print("result", result)
-
     student: dict = result.get("student")
     students: list[dict] = dialog_manager.dialog_data.get("students")
 
@@ -243,11 +240,18 @@ dialog = Dialog(
             type=ContentType.PHOTO, 
             when="student_image"),
         NAME_TEXT_WITH_USERNAME,
-        Format("{formatted_caption}"),
+        Format("{student_slogan}"),
+        Format("{student_about}"),
+        Format("{student_prof_experience}"),
+        Format("{student_expectations}"),
         Format("{student_tags}"),
         Row(
             Back(Format("{back_btn}")),
-            Button(Format("{edit_btn}"), id="edit_btn_id", when="edit_btn_true", on_click=start_edit_mode)
+            Button(
+                Format("{edit_btn}"), 
+                id="edit_btn_id", 
+                when="edit_btn_true", 
+                on_click=start_edit_mode)
         ),
         
         Row(
