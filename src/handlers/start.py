@@ -13,7 +13,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 from my_tools import DialogManagerKeys
 
 from ..states import Admin, Onboarding, Flow
-from ..enums import Database, Action
+from ..enums import Database, Action, RedisKeys
 from ..utils.utils import get_middleware_data
 from ..queries import add_action
 from ..config import Config
@@ -40,16 +40,47 @@ def get_current_state(
     return current_state
 
 
+WARNING_MESSAGE = """
+<b>❗Похоже у вас нет доступа к боту. Пожалуйста, обратитесь к <a href="https://t.me/anastasia_ilu">Насте</a></b>
+"""
+
 @router.message(CommandStart())
 async def process_start(message: Message, dialog_manager: DialogManager) -> None:
 
-    _, _, user_data = get_middleware_data(dialog_manager)
+    bot, _, user_data = get_middleware_data(dialog_manager)
 
     log_message = f"Bot is starting for {user_data.id} ({user_data.full_name})"
     logging.warning(log_message)
-    await add_action(dialog_manager, Action.START)
 
-    await start_dialog(dialog_manager, Flow.MENU)
+    users_storage: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
+
+    if await users_storage.redis.sismember(RedisKeys.KNOWN_USERS, user_data.id):
+    
+        await add_action(dialog_manager, Action.START)
+
+        await start_dialog(dialog_manager, Flow.MENU)
+
+    else:
+        await bot.send_message(chat_id=user_data.id, text=WARNING_MESSAGE)
+
+
+@router.message(F.forward_from)
+async def process_message(message: Message, dialog_manager: DialogManager) -> None:
+
+    bot, config, user_data = get_middleware_data(dialog_manager)
+    users_storage: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
+
+    if message.from_user.id in config.admins.ids:
+
+        await users_storage.redis.sadd(RedisKeys.KNOWN_USERS, message.forward_from.id)
+        user = f"{message.forward_from.first_name} {message.forward_from.last_name} ({message.forward_from.id})"
+        await bot.send_message(
+            chat_id=user_data.id, 
+            text=f"Пользователь {user} добавлен!")
+        logging.warning(f"User {user} added")
+
+    else:
+        await bot.send_message(chat_id=user_data.id, text=WARNING_MESSAGE)
 
 
 @router.callback_query(F.data == "flow")
