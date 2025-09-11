@@ -35,7 +35,7 @@ class Flow(StatesGroup):
     MY_PROFILE = State()
 
 
-class StudentGallery(StatesGroup):
+class PersonGallery(StatesGroup):
 
     SCROLL_LIST = State()
     PROFILE = State()

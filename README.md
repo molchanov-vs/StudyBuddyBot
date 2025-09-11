@@ -96,9 +96,11 @@ payload2 = {
 
 ## ToDo
 
-- [ ] Update known_users
-- [ ] Add to known_users
-- [ ] Add telegraph articles
+- [x] Update known_users
+- [x] Add to known_users
+- [x] Add telegraph articles
+- [x] Add preps
+- [ ] Make photos wider
 
 
 

@@ -1,7 +1,8 @@
+from typing import Any, Literal
+import re
+
 from pydantic import BaseModel, field_validator, ValidationInfo, HttpUrl
 from pydantic import PositiveInt, Field
-from typing import Any
-import re
 
 from my_tools import get_datetime_now
 
@@ -74,11 +75,13 @@ class Person(BaseModel):
 
 class Teacher(Person):
 
+    role: Literal["teacher"] = "teacher"
     mission: str | None = Field(default=None)
 
 
 class Student(Person):
 
+    role: Literal["student"] = "student"
     expectations: str | None = Field(default=None)
     internship: str | None = Field(default=None)
 

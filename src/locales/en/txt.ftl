@@ -46,9 +46,10 @@ menu-schedule_btn =
 menu-my_profile_btn = 
 
 
-# 3_students
-students-students_header = 
-students-telegraph_btn = 
+# 3_persons
+persons-students_header = 
+persons-teachers_header = 
+persons-telegraph_btn = 
 
 
 # 4_edit

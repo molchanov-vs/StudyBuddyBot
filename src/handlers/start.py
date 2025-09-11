@@ -77,6 +77,8 @@ async def process_message(message: Message, dialog_manager: DialogManager) -> No
         await bot.send_message(
             chat_id=user_data.id, 
             text=f"Пользователь {user} добавлен!")
+
+        await bot.send_message(chat_id=message.forward_from.id, text="Теперь вы можете использовать бот!\nПожалуйста, нажмите /start")
         logging.warning(f"User {user} added")
 
     else:

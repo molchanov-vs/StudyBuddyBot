@@ -60,7 +60,7 @@ async def get_teachers(config: Config) -> list[Teacher]:
             telegraph_page=col[10], row=ind+3)
         for ind, col in enumerate(res) if len(col) > 3]
 
-    return sorted(teachers, key=lambda x: x.name.split()[1])
+    return sorted(teachers, key=lambda x: x.name.split()[0])
 
 
 # # Teachers spreadsheet operations

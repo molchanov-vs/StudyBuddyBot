@@ -70,9 +70,10 @@ menu-schedule_btn = Расписание
 menu-my_profile_btn = Мой профиль
 
 
-# 3_students
-students-students_header = ----- Галерея студентов ----
-students-telegraph_btn = 🌐
+# 3_persons
+persons-students_header = ----- Галерея студентов ----
+persons-teachers_header = ----- Галерея преподавателей ----
+persons-telegraph_btn = 🌐
 
 
 # 4_edit

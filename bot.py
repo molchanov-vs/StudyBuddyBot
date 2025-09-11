@@ -45,7 +45,7 @@ async def main() -> None:
     start_logging(config.system.time_zone)
 
     # Flush Redis databases in development mode
-    await flush_redis_databases(config)
+    # await flush_redis_databases(config)
 
     bot: Bot = await setup_bot(config)
     dp: Dispatcher = await setup_dispathcer(config=config)

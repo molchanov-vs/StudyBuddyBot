@@ -5,12 +5,13 @@ from glob import glob
 from aiogram.types import CallbackQuery
 
 from aiogram_dialog import Dialog, Window, DialogManager
+from aiogram_dialog import StartMode, ShowMode
 from aiogram_dialog.widgets.kbd import Button
 from aiogram_dialog.widgets.text import Format
 
-from ..states import Flow, StudentGallery
-from ..custom_types import Student
-from ..google_queries import get_students
+from ..states import Flow, PersonGallery
+from ..custom_types import Student, Teacher
+from ..google_queries import get_students, get_teachers
 
 from ..utils.utils import get_middleware_data
 
@@ -41,34 +42,67 @@ async def dialog_get_data(
 async def retrive_gallery(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
 
     bot, config, user_data = get_middleware_data(dialog_manager)
-    students: list[Student] = await get_students(config)
 
-    if user_data.id not in config.admins.ids:
-        students = [s for s in students if s.id not in config.admins.ids]
-
-    all_images: list[str] = glob("./media/*/onboarding/4_*")
-
-    for student in students:
-        student.get_latest_image_path(all_images)
-
-    start_data = {
-        "students": [s.model_dump() for s in students],
-        "current_user_id": user_data.id
-    }
+    state = PersonGallery.SCROLL_LIST
 
     match callback.data:
 
         case "student_gallery_btn_id":
-            state = StudentGallery.SCROLL_LIST
+            role = "student"
+            persons: list[Student] = await get_students(config)
 
+        case "teacher_gallery_btn_id":
+            role = "teacher"
+            persons: list[Teacher] = await get_teachers(config)
+            
         case "my_profile_btn_id":
-            state = StudentGallery.PROFILE
-            current_student_index: int = [s.id for s in students].index(user_data.id)
-            back_student_index: int = current_student_index - 1 if current_student_index > 0 else len(students) - 1
-            next_student_index: int = current_student_index + 1 if current_student_index < len(students) - 1 else 0
-            start_data.update({
-                "indexes": (current_student_index, back_student_index, next_student_index)
-            })
+            # For my profile, we need to determine if user is student or teacher
+            # and get the appropriate list
+            students: list[Student] = await get_students(config)
+            teachers: list[Teacher] = await get_teachers(config)
+            
+            # Check if user is in students or teachers list
+            if any(s.id == user_data.id for s in students):
+                role = "student"
+                persons = students
+            elif any(t.id == user_data.id for t in teachers):
+                role = "teacher"
+                persons = teachers
+            else:
+                # User not found in either list, default to students
+                role = "unknown"
+                persons = students
+
+    if role == "unknown":
+        await bot.send_message(chat_id=user_data.id, text="Похоже ты не студент или не преподаватель. Пожалуйста, обратитесь к <a href='https://t.me/anastasia_ilu'>Насте</a>")
+        await dialog_manager.start(
+            state=Flow.MENU, 
+            mode = StartMode.RESET_STACK,
+            show_mode=ShowMode.DELETE_AND_SEND)
+        return
+
+    if user_data.id not in config.admins.ids:
+        persons = [p for p in persons if p.id not in config.admins.ids]
+
+    all_images: list[str] = glob("./media/*/onboarding/4_*")
+
+    for person in persons:
+        person.get_latest_image_path(all_images)
+        
+    start_data = {
+        "role": role,
+        "persons": [p.model_dump() for p in persons],
+        "current_user_id": user_data.id
+    }
+
+    if callback.data == "my_profile_btn_id":
+        state = PersonGallery.PROFILE
+        current_student_index: int = [p.id for p in persons].index(user_data.id)
+        back_student_index: int = current_student_index - 1 if current_student_index > 0 else len(persons) - 1
+        next_student_index: int = current_student_index + 1 if current_student_index < len(persons) - 1 else 0
+        start_data.update({
+            "indexes": (current_student_index, back_student_index, next_student_index)
+        })
 
     await dialog_manager.start(
         state=state,
