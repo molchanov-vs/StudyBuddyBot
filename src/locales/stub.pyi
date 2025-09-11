@@ -125,6 +125,8 @@ class Menu:
 class Students:
     @staticmethod
     def students_header() -> Literal["""----- Галерея студентов ----"""]: ...
+    @staticmethod
+    def telegraph_btn() -> Literal["""🌐"""]: ...
 
 class Edit:
     @staticmethod

@@ -96,14 +96,9 @@ payload2 = {
 
 ## ToDo
 
-- [x] Добавить id для загружаемых медиа
-- [ ] Что после онбординга
-- [ ] Сделать Windows Navigator
-
-
-
-
-
+- [ ] Update known_users
+- [ ] Add to known_users
+- [ ] Add telegraph articles
 
 
 

@@ -72,6 +72,7 @@ menu-my_profile_btn = Мой профиль
 
 # 3_students
 students-students_header = ----- Галерея студентов ----
+students-telegraph_btn = 🌐
 
 
 # 4_edit

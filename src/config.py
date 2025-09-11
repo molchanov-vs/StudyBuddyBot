@@ -45,9 +45,14 @@ class Redis(BaseModel):
 class Google(BaseModel):
 
     onboarding_id: str
-    vitrina_tab: str
+    student_vitrina_tab: str
+    teacher_vitrina_tab: str
     intern_tab: str
     service_account_json: str
+
+
+class Telegraph(BaseModel):
+    access_token: str
 
 
 class OpenAI(BaseModel):
@@ -75,6 +80,7 @@ class Config(BaseModel):
     openai: OpenAI
     system_prompt: SystemPrompt
     google: Google
+    telegraph: Telegraph
 
 # Load the YAML configuration file
 def load_config() -> Config:

@@ -1,11 +1,13 @@
 from typing import Any, TYPE_CHECKING
 
+from aiogram import F
+
 from aiogram.types import CallbackQuery
 from aiogram.enums import ContentType
 
 from aiogram_dialog import Dialog, Window, DialogManager, Data
-from aiogram_dialog.widgets.kbd import Select, Back, Row, Button
-from aiogram_dialog.widgets.text import Format, Jinja
+from aiogram_dialog.widgets.kbd import Select, Back, Row, Button, Url
+from aiogram_dialog.widgets.text import Format, Jinja, Const
 from aiogram_dialog.widgets.media import StaticMedia
 
 from ..widgets.scrolling_group import CustomScrollingGroup
@@ -42,6 +44,7 @@ async def dialog_get_data(
     data.update({
         "students_header": i18n.students.students_header(),
         "back_btn": i18n.service.back_btn(),
+        "telegraph_btn": i18n.students.telegraph_btn(),
         "edit_btn": i18n.edit.edit_btn(),
     })
 
@@ -115,27 +118,26 @@ async def get_data_for_profile(
     
     current_student: Student = students[current_student_index]
     
-    # Apply character limit validation to current student before displaying
-    current_student.validate_for_caption()  # Use caption limit (1024 chars) for media messages
+    # # Apply character limit validation to current student before displaying
+    # current_student.validate_for_caption()  # Use caption limit (1024 chars) for media messages
     
     back_student: Student = students[back_student_index]
     next_student: Student = students[next_student_index]
 
-    # Get validated formatted caption (guaranteed to be within limits)
-    # slogan, about, prof_experience, expectations
-    formatted_caption: dict[str, str] = current_student.get_formatted_caption_components()
+    # # Get validated formatted caption (guaranteed to be within limits)
+    # # slogan, about, prof_experience, expectations
+    # formatted_caption: dict[str, str] = current_student.get_formatted_caption_components()
     
     # Add tags formatting (not included in Student class as it's optional)
-    student_tags = f"\n#{' #'.join(current_student.tags)}" if current_student.tags else ""
+    student_tags = f"\n🏷️ #{' #'.join(current_student.tags)}" if current_student.tags else ""
     
     # Character limits are now handled at the Student level via get_validated_formatted_caption()
 
     data.update({
         "student_name": (current_student.name, current_student.username),
-        "student_slogan": f"<i>{formatted_caption["student_slogan"].strip()}</i>",
-        "student_about": f"<blockquote expandable>{formatted_caption["student_about"].strip()}</blockquote>",
-        "student_prof_experience": f"<blockquote expandable>{formatted_caption["student_prof_experience"].strip()}</blockquote>",
-        "student_expectations": f"<i>{formatted_caption["student_expectations"].strip()}</i>",
+        "student_slogan": f"\n💡 {current_student.slogan}" if current_student.slogan else "",
+        "telegraph_page": current_student.telegraph_page,
+        "student_expectations": f"\n🎯 {current_student.expectations}" if current_student.expectations else "",
         "student_tags": student_tags,
         "back_student": f"{back_student.get_display_name()}",
         "next_student": f"{next_student.get_display_name()}"
@@ -190,9 +192,10 @@ async def start_edit_mode(callback: CallbackQuery, button: Button, dialog_manage
             "current_student_data": dialog_manager.dialog_data.get("current_student_data", {}),
         }
     )
+    
 
 NAME_TEXT_WITH_USERNAME = Jinja("""
-<a href="{{ student_name[1] }}"> {{ student_name[0] }}</a>
+<a href="{{ student_name[1] }}"> 👤 {{ student_name[0] }}</a>
 """)
 
 
@@ -240,13 +243,11 @@ dialog = Dialog(
             type=ContentType.PHOTO, 
             when="student_image"),
         NAME_TEXT_WITH_USERNAME,
-        Format("{student_slogan}"),
-        Format("{student_about}"),
-        Format("{student_prof_experience}"),
-        Format("{student_expectations}"),
-        Format("{student_tags}"),
+        Format("{student_slogan}", when=F["student_slogan"]),
+        Format("{student_expectations}", when=F["student_expectations"]),
+        Format("{student_tags}", when=F["student_tags"]),
         Row(
-            Back(Format("{back_btn}")),
+            Url(text=Format("{telegraph_btn}"), url=Format("{telegraph_page}"), id="url_id"),
             Button(
                 Format("{edit_btn}"), 
                 id="edit_btn_id", 
@@ -256,6 +257,7 @@ dialog = Dialog(
         
         Row(
             Button(Format("{back_student}"), id="back_student_id", on_click=process_carousel),
+            Back(Format("{back_btn}")),
             Button(Format("{next_student}"), id="next_student_id", on_click=process_carousel),
         ),
         state=StudentGallery.PROFILE,

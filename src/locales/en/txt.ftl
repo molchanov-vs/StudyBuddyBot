@@ -48,6 +48,7 @@ menu-my_profile_btn =
 
 # 3_students
 students-students_header = 
+students-telegraph_btn = 
 
 
 # 4_edit

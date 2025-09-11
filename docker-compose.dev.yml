@@ -21,7 +21,7 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./src/locales:/app/src/locales
       - ./logs_test:/app/logs
-      - ./media_test:/app/media
+      - ./media:/app/media
       - ./studybuddybot-471111-f80d6e34ca47.json:/app/studybuddybot-471111-f80d6e34ca47.json
     ports:
       - "8001:8000"  # Different port to avoid conflict with prod

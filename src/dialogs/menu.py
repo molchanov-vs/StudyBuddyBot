@@ -5,12 +5,12 @@ from glob import glob
 from aiogram.types import CallbackQuery
 
 from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Start
+from aiogram_dialog.widgets.kbd import Button
 from aiogram_dialog.widgets.text import Format
 
 from ..states import Flow, StudentGallery
 from ..custom_types import Student
-from ..google_queries import get_students, get_start_data_for_dialog
+from ..google_queries import get_students
 
 from ..utils.utils import get_middleware_data
 
@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 
 async def dialog_get_data(
         i18n: TranslatorRunner,
-        dialog_manager: DialogManager,
         **kwargs):
 
         data: dict[str, str] = {}
@@ -39,9 +38,9 @@ async def dialog_get_data(
 
 
 # Callback handlers for the buttons
-async def start_student_gallery(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+async def retrive_gallery(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
 
-    _,config, user_data = get_middleware_data(dialog_manager)
+    bot, config, user_data = get_middleware_data(dialog_manager)
     students: list[Student] = await get_students(config)
 
     if user_data.id not in config.admins.ids:
@@ -51,7 +50,6 @@ async def start_student_gallery(callback: CallbackQuery, button: Button, dialog_
 
     for student in students:
         student.get_latest_image_path(all_images)
-
 
     start_data = {
         "students": [s.model_dump() for s in students],
@@ -85,15 +83,19 @@ dialog = Dialog(
         Button(
             Format("{student_gallery_btn}"), 
             id="student_gallery_btn_id", 
-            on_click=start_student_gallery
+            on_click=retrive_gallery
             ),
 
-        Button(Format("{teacher_gallery_btn}"), id="teacher_gallery_btn_id"),
+        Button(
+            Format("{teacher_gallery_btn}"), 
+            id="teacher_gallery_btn_id",
+            on_click=retrive_gallery
+            ),
         Button(Format("{schedule_btn}"), id="schedule_btn_id", when="schedule"),
         Button(
             Format("{my_profile_btn}"), 
             id="my_profile_btn_id", 
-            on_click=start_student_gallery
+            on_click=retrive_gallery
             ),
         state=Flow.MENU,
     ),

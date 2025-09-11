@@ -4,195 +4,90 @@ from .utils.sheets_async import SheetsAsync
 from .config import Config
 from .custom_types import Teacher, Student
 
+from pprint import pprint
+
 
 # Multiple singletons for different spreadsheets
-_students_sheets_instance: SheetsAsync | None = None
-_teachers_sheets_instance: SheetsAsync | None = None
-_content_sheets_instance: SheetsAsync | None = None
+_main_sheets_instance: SheetsAsync | None = None
 
-
-def get_students_sheets_instance(config: Config) -> SheetsAsync:
+async def get_main_sheets_instance(config: Config, rng: str) -> list[list[str]]:
     """
     Get or create a singleton SheetsAsync instance for students spreadsheet.
     """
-    global _students_sheets_instance
-    if _students_sheets_instance is None:
-        _students_sheets_instance = SheetsAsync(
+    global _main_sheets_instance
+    if _main_sheets_instance is None:
+        _main_sheets_instance = SheetsAsync(
             spreadsheet_id = config.google.onboarding_id,
             sa_json_path = config.google.service_account_json
         )
-    return _students_sheets_instance
 
+    read_res = await _main_sheets_instance.read(rng)
 
-def get_teachers_sheets_instance(config: Config) -> SheetsAsync:
-    """
-    Get or create a singleton SheetsAsync instance for teachers spreadsheet.
-    """
-    global _teachers_sheets_instance
-    if _teachers_sheets_instance is None:
-        _teachers_sheets_instance = SheetsAsync(
-            spreadsheet_id = config.google.feedbacks_and_accesses_id,
-            sa_json_path = config.google.service_account_json
-        )
-    return _teachers_sheets_instance
+    cols_num: int = len(read_res.get("values")[0])
+    res = [el + [""]* (cols_num - len(el)) for el in read_res.get("values")[2:]]
 
-
-
-def get_content_sheets_instance(config: Config) -> SheetsAsync:
-    """
-    Get or create a singleton SheetsAsync instance for content spreadsheet.
-    """
-    global _content_sheets_instance
-    if _content_sheets_instance is None:
-        _content_sheets_instance = SheetsAsync(
-            spreadsheet_id = config.google.content_id,  # Different spreadsheet
-            sa_json_path = config.google.service_account_json
-        )
-    return _content_sheets_instance
+    return res
 
 
 async def get_students(config: Config) -> list[Student]:
     """
     Get list of students from Google Sheets.
     """
-    sheet: SheetsAsync = get_students_sheets_instance(config)
-    read_res = await sheet.read(f"{config.google.vitrina_tab}!A1:O")
+    res: list[list[str]] = await get_main_sheets_instance(config, f"{config.google.student_vitrina_tab}!A1:P")
 
     students: list[Student] = [
         Student(
             id=col[0], name=col[1], username=col[2], 
             slogan=col[7], prof_experience=col[8], 
-            about=col[9], tags=col[11], expectations=col[14], 
-            row=ind+3)
-        for ind, col in enumerate(read_res.get("values")[2:]) if len(col) > 14]
-
-    if len(students) == 0:
-        # Handle case where no students are available
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error("No students available in get_students")
-        return {"error": "No students available"}
-
-    # Apply character limits to all students
-    for student in students:
-        student.validate_for_message()  # Use message limit (4096 chars)
+            about=col[9], tags=col[11], expectations=col[14],
+            telegraph_page=col[15], row=ind+3)
+        for ind, col in enumerate(res)]
 
     return sorted(students, key=lambda x: x.name.split()[1])
 
 
-# Teachers spreadsheet operations
 async def get_teachers(config: Config) -> list[Teacher]:
     """
     Get list of teachers from Google Sheets.
     """
-    sheet: SheetsAsync = get_teachers_sheets_instance(config)
-
-    read_res = await sheet.read(f"{config.google.accesses_tab}!A1:C{config.google.accesses_tab_length}")
+    res: list[list[str]] = await get_main_sheets_instance(config, f"{config.google.teacher_vitrina_tab}!A1:K")
 
     teachers: list[Teacher] = [
-        Teacher(id=col[1], name=col[0], disciplines=col[2].split(", ")) 
-        for col in read_res.get("values")[1:] if len(col) > 2]
+        Teacher(
+            id=col[0], name=col[1], username=col[2],
+            about=col[4], prof_experience=col[5],
+            tags=col[6], mission=col[7], slogan=col[8],
+            telegraph_page=col[10], row=ind+3)
+        for ind, col in enumerate(res) if len(col) > 3]
 
-    return teachers
-
-
-async def get_teachers_ids(config: Config) -> set[int]:
-    """
-    Get list of teachers from Google Sheets.
-    """
-
-    teachers = await get_teachers(config)
-
-    return set([teacher.id for teacher in teachers])
+    return sorted(teachers, key=lambda x: x.name.split()[1])
 
 
-async def get_list_of_disciplines(
-        config: Config, 
-        teachers: list[Teacher],
-        teacher_id: int) -> list[tuple[str, str]]:
-    """
-    Get list of disciplines for a current teacher.
-    """
+# # Teachers spreadsheet operations
+# async def get_teachers(config: Config) -> list[Teacher]:
+#     """
+#     Get list of teachers from Google Sheets.
+#     """
+#     sheet: SheetsAsync = get_teachers_sheets_instance(config)
 
-    sheet: SheetsAsync = get_teachers_sheets_instance(config)
+#     read_res = await sheet.read(f"{config.google.accesses_tab}!A1:C{config.google.accesses_tab_length}")
 
-    read_discs = await sheet.read(f"{config.google.accesses_tab}!E1:F{config.google.disciplines_tab_length}")
+#     teachers: list[Teacher] = [
+#         Teacher(id=col[1], name=col[0], disciplines=col[2].split(", ")) 
+#         for col in read_res.get("values")[1:] if len(col) > 2]
 
-    discs = dict([(el[0], el[1]) for el in read_discs.get("values")[1:]])
-
-    teacher = next((t for t in teachers if t.id == teacher_id), None)
-
-    return [(d, discs.get(d)) for d in teacher.disciplines] # [("Матметоды", "mathmethods"), ...]
+#     return teachers
 
 
-async def get_list_of_tasks(
-        config: Config,
-        disciplines: list[tuple[str, str]]) -> list[tuple[str, str]]:
+# async def get_teachers_ids(config: Config) -> set[int]:
+#     """
+#     Get list of teachers from Google Sheets.
+#     """
 
-    sheet: SheetsAsync = get_content_sheets_instance(config)
+#     teachers = await get_teachers(config)
 
-    task_data: dict = {}
+#     return set([teacher.id for teacher in teachers])
 
-    for discipline, disc_id in disciplines:
-        read_tasks = await sheet.read(f"{disc_id}!A2:B")
-        task_data[disc_id] = read_tasks.get("values")
-
-    return task_data
-
-
-async def get_syllabus(
-        config: Config,
-        disciplines: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    
-    sheet: SheetsAsync = get_content_sheets_instance(config)
-    read_syllabases = await sheet.read(f"{config.google.syllabus_tab}!A2:B")
-    
-    return read_syllabases.get("values")
-
-
-
-async def get_start_data_for_dialog(
-        config: Config,
-        user_id: int) -> dict[str, dict[str, dict[str, str]]]:
-
-    dialog_data: dict = {}
-
-    students: list[Student] = await get_students(config)
-
-    disciplines: list[tuple[str, str]] = await get_list_of_disciplines(config, teachers, user_id)
-    syllabus: list[tuple[str, str]] = await get_syllabus(config, disciplines)
-    tasks: list[tuple[str, str]] = await get_list_of_tasks(config, disciplines)
-
-    for discipline, disc_id in disciplines:
-        dialog_data[disc_id] = {
-            "name": discipline,
-            "syllabus": [el[1] for el in syllabus if el[0] == discipline][0]
-            }
-
-        for ind, task in enumerate(tasks[disc_id]):
-            dialog_data[disc_id][f"task_{ind+1}"] = {
-                "name": task[0],
-                "description": task[1]}
-
-    return dialog_data
-
-
-
-async def put_feedback(
-        config: Config,
-        user_id: int,
-        current_discipline_name: str,
-        current_task_name: str,
-        feedback: str):
-    
-    sheet: SheetsAsync = get_teachers_sheets_instance(config)
-
-    await sheet.append(
-        f"{user_id}!A1:C",
-        [
-            [current_discipline_name, current_task_name, feedback]
-        ]
-    )
 
 
 async def update_student_name(
@@ -269,7 +164,7 @@ async def update_cell_by_coordinates(
         # Update cell AA1 (column 27, row 1)
         await update_cell_by_coordinates(config, "123456789", 27, 1, 3.14)
     """
-    sheet: SheetsAsync = get_students_sheets_instance(config)
+    sheet: SheetsAsync = get_main_sheets_instance(config)
     
     # Convert column number to letter
     column_letter = column_number_to_letter(column)
@@ -307,7 +202,7 @@ async def update_cell_by_letter(
         # Update cell AA10
         await update_cell_by_letter(config, "123456789", "AA", 10, 42)
     """
-    sheet: SheetsAsync = get_students_sheets_instance(config)
+    sheet: SheetsAsync = get_main_sheets_instance(config)
     
     # Create cell range
     cell_range = f"{sheet_name}!{column_letter}{row}"

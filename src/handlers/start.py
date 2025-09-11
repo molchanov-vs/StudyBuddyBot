@@ -1,7 +1,6 @@
 from typing import Any
 
 import logging
-import random
 
 from aiogram import Router, F
 from aiogram.types import Message, ErrorEvent, CallbackQuery
@@ -36,7 +35,7 @@ def get_current_state(
         current_state = dialog_manager.current_context().state
 
     except:
-        current_state = Onboarding.WELCOME
+        current_state = Flow.MENU
 
     return current_state
 
@@ -44,20 +43,11 @@ def get_current_state(
 @router.message(CommandStart())
 async def process_start(message: Message, dialog_manager: DialogManager) -> None:
 
-    _, config, user_data = get_middleware_data(dialog_manager)
+    _, _, user_data = get_middleware_data(dialog_manager)
 
     log_message = f"Bot is starting for {user_data.id} ({user_data.full_name})"
     logging.warning(log_message)
     await add_action(dialog_manager, Action.START)
-
-    current_state = get_current_state(dialog_manager, config, user_data.id)
-    # # if current_state == Onboarding.THANKS:
-        
-    # #     await add_action(dialog_manager, Flow.MENU)
-    
-    # # else:
-    
-    # #     await start_dialog(dialog_manager, current_state)
 
     await start_dialog(dialog_manager, Flow.MENU)
 
