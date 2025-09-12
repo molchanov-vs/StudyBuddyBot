@@ -20,32 +20,11 @@ from scripts.get_locales import update_locales
 
 logger = logging.getLogger(__name__)
 
-
-async def flush_redis_databases(config: Config) -> None:
-    """Flush all Redis databases in development mode."""
-    if os.getenv('DEVELOPMENT', 'false').lower() == 'true':
-        try:
-            # Connect to Redis
-            redis_client = redis.Redis.from_url(config.redis.fsm, decode_responses=True)
-            
-            # Flush all databases (0, 1, 2, 3)
-            await redis_client.flushall()
-            logger.info(f"FLUSHED Redis")
-            
-            await redis_client.aclose()
-            
-        except Exception as e:
-            logger.error(f"Failed to flush Redis databases: {e}")
-
-
 async def main() -> None:
 
     config: Config = load_config()
 
     start_logging(config.system.time_zone)
-
-    # Flush Redis databases in development mode
-    # await flush_redis_databases(config)
 
     bot: Bot = await setup_bot(config)
     dp: Dispatcher = await setup_dispathcer(config=config)

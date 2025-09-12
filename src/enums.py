@@ -43,5 +43,5 @@ class Database(str, Enum):
 class RedisKeys(str, Enum):
 
     KNOWN_USERS = "known_users"
-    PARSER_JOBS = "parser_jobs"
-    PARSER_JOBS_RUNNING = "parser_jobs_running"
+    TEACHERS = "teachers"
+    STUDENTS = "students"

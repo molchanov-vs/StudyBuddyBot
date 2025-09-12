@@ -100,6 +100,7 @@ payload2 = {
 - [x] Add to known_users
 - [x] Add telegraph articles
 - [x] Add preps
+- [ ] Add to Redis unboarded students
 - [ ] Make photos wider
 
 

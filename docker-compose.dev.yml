@@ -4,8 +4,15 @@ services:
     image: redis:8.2-alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
-    restart: no
+    command: >
+      redis-server
+      --appendonly no
+      --dir /data
+      --dbfilename dump.rdb
+      --save 60 1
+    volumes:
+      - ./redis_dump:/data
+    restart: unless-stopped
     networks:
       - dev-network
 
