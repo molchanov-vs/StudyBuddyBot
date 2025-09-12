@@ -52,3 +52,4 @@ class EditMode(StatesGroup):
     EDIT_ABOUT = State()
     EDIT_TAGS = State()
     EDIT_EXPECTATIONS = State()
+    EDIT_MISSION = State()

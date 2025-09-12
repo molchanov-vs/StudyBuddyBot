@@ -193,6 +193,7 @@ async def start_edit_mode(callback: CallbackQuery, button: Button, dialog_manage
         state=EditMode.MAIN,
         data={
             "current_person_data": dialog_manager.dialog_data.get("current_person_data", {}),
+            "role": dialog_manager.dialog_data.get("role", "student"),
         }
     )
     

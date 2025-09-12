@@ -63,10 +63,11 @@ async def retrive_gallery(callback: CallbackQuery, button: Button, dialog_manage
             # Check if user is in students or teachers list
             if await users_storage.redis.sismember(RedisKeys.STUDENTS, user_data.id):
                 role = "student"
-                persons = list[Student] = await get_students(config)
+                persons: list[Student] = await get_students(config)
+
             elif await users_storage.redis.sismember(RedisKeys.TEACHERS, user_data.id):
                 role = "teacher"
-                persons = list[Teacher] = await get_teachers(config)
+                persons: list[Teacher] = await get_teachers(config)
             else:
                 # User not found in either list, default to students
                 role = "unknown"

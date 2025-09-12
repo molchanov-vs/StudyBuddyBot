@@ -10,6 +10,7 @@ class ButtonsId(str, Enum):
     EDIT_ABOUT_BTN_ID = "edit_about_btn_id"
     EDIT_TAGS_BTN_ID = "edit_tags_btn_id"
     EDIT_EXPECTATIONS_BTN_ID = "edit_expectations_btn_id"
+    EDIT_MISSION_BTN_ID = "edit_mission_btn_id"
 
 
 class Action(str, Enum):

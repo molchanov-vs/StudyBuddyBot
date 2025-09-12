@@ -9,7 +9,6 @@ services:
       --appendonly no
       --dir /data
       --dbfilename dump.rdb
-      --save 60 1
     volumes:
       - ./redis_dump:/data
     restart: unless-stopped

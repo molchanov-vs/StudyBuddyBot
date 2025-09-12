@@ -107,9 +107,8 @@ async def correct_name_handler(
         await dialog_manager.next()
 
     else:
-        dialog_manager.dialog_data["student"]["name"] = text
+        dialog_manager.dialog_data["person"]["name"] = text
         dialog_manager.dialog_data["edit_mode"] = True
-        print(dialog_manager.dialog_data["student"])
 
 
 async def error_name_handler(

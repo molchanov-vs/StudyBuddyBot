@@ -10,7 +10,7 @@ from pprint import pprint
 # Multiple singletons for different spreadsheets
 _main_sheets_instance: SheetsAsync | None = None
 
-async def get_main_sheets_instance(config: Config, rng: str) -> list[list[str]]:
+async def get_main_sheets_instance(config: Config, rng: str, get_instance: bool = False) -> list[list[str]] | SheetsAsync:
     """
     Get or create a singleton SheetsAsync instance for students spreadsheet.
     """
@@ -20,6 +20,9 @@ async def get_main_sheets_instance(config: Config, rng: str) -> list[list[str]]:
             spreadsheet_id = config.google.onboarding_id,
             sa_json_path = config.google.service_account_json
         )
+
+    if get_instance:
+        return _main_sheets_instance
 
     read_res = await _main_sheets_instance.read(rng)
 
@@ -137,7 +140,7 @@ def column_number_to_letter(column_number: int) -> str:
 
 async def update_cell_by_coordinates(
         config: Config,
-        sheet_name: str,
+        role: str,
         column: int,
         row: int,
         value: str | int | float | None):
@@ -164,7 +167,13 @@ async def update_cell_by_coordinates(
         # Update cell AA1 (column 27, row 1)
         await update_cell_by_coordinates(config, "123456789", 27, 1, 3.14)
     """
-    sheet: SheetsAsync = get_main_sheets_instance(config)
+
+    if role == "student":
+        sheet_name = config.google.student_vitrina_tab
+    else:
+        sheet_name = config.google.teacher_vitrina_tab
+
+    sheet: SheetsAsync = await get_main_sheets_instance(config, sheet_name, True)
     
     # Convert column number to letter
     column_letter = column_number_to_letter(column)

@@ -79,11 +79,12 @@ persons-telegraph_btn = 🌐
 # 4_edit
 edit-edit_header = Выбери, что хочешь изменить:
 edit-edit_btn = ✏️
-edit-edit_photo_btn = ✏️ фото
-edit-edit_name_btn = ✏️ имя
-edit-edit_slogan_btn = ✏️ слоган
-edit-edit_prof_experience_btn = ✏️ профессиональный опыт
-edit-edit_about_btn = ✏️ о себе
-edit-edit_tags_btn = ✏️ теги
-edit-edit_expectations_btn = ✏️ ожидания
+edit-edit_photo_btn = 📸 фото
+edit-edit_name_btn = 👤 имя
+edit-edit_slogan_btn = 📢 слоган
+edit-edit_prof_experience_btn = 💼 опыт
+edit-edit_about_btn = 📍 о себе
+edit-edit_tags_btn = 🏷️ интересы
+edit-edit_expectations_btn = 🎯 ожидания
+edit-edit_mission_btn = 🚀 миссия
 

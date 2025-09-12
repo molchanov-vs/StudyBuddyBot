@@ -2,6 +2,7 @@ from typing import Any, TYPE_CHECKING
 
 import re
 
+from aiogram import F
 from aiogram.types import CallbackQuery, Message
 from aiogram.enums import ContentType
 
@@ -14,12 +15,13 @@ from ..utils.boarding_handlers import correct_name_handler, error_name_handler
 from ..utils.utils import get_middleware_data
 
 from ..google_queries import update_cell_by_coordinates
+from ..telegraph_queries import update_telegraph_page
 
 from ..states import EditMode, Flow
 
 from ..enums import ButtonsId
 
-from ..custom_types import Student
+from ..custom_types import Student, Teacher
 
 from fluentogram import TranslatorRunner
 
@@ -31,7 +33,8 @@ async def on_dialog_start(
         start_data: Any,
         dialog_manager: DialogManager):
 
-    dialog_manager.dialog_data["student"] = start_data["current_student_data"]
+    dialog_manager.dialog_data["person"] = start_data["current_person_data"]
+    dialog_manager.dialog_data["role"] = start_data["role"]
 
 
 async def dialog_get_data(
@@ -49,6 +52,7 @@ async def dialog_get_data(
         "edit_about_btn": i18n.edit.edit_about_btn(),
         "edit_tags_btn": i18n.edit.edit_tags_btn(),
         "edit_expectations_btn": i18n.edit.edit_expectations_btn(),
+        "edit_mission_btn": i18n.edit.edit_mission_btn(),
         "done_btn": i18n.service.done_btn(),
         "back_btn": i18n.service.back_btn(),
     })
@@ -66,6 +70,7 @@ async def start_edit_photo(
     #     state=EditMode.EDIT_PHOTO,
     #     data={"current_student_data": dialog_manager.dialog_data.get("current_student_data", 0)}
     # )
+
 
 async def start_edit_mode(
     callback: CallbackQuery, 
@@ -95,6 +100,9 @@ async def start_edit_mode(
         case ButtonsId.EDIT_PHOTO_BTN_ID:
             mode = EditMode.EDIT_PHOTO
 
+        case ButtonsId.EDIT_MISSION_BTN_ID:
+            mode = EditMode.EDIT_MISSION
+
         case _:
             pass
 
@@ -103,16 +111,25 @@ async def start_edit_mode(
 
 async def getter_for_edition(dialog_manager: DialogManager, **kwargs):
 
-    student: Student = Student(**dialog_manager.dialog_data.get("student"))
+    role = dialog_manager.dialog_data.get("role", "student")
+
+    if role == "student":
+        person: Student = Student(**dialog_manager.dialog_data.get("person"))
+    else:
+        person: Teacher = Teacher(**dialog_manager.dialog_data.get("person"))
 
     data: dict[str, str] = {
-        "name": f"<b>{student.name}</b>",
-        "slogan": f"<b>{student.slogan}</b>",
-        "prof_experience": f"<b>{student.prof_experience}</b>",
-        "about": f"<b>{student.about}</b>",
-        "tags": f"<b>{student.tags}</b>",
-        "expectations": f"<b>{student.expectations}</b>"
+        "name": f"<b>{person.name}</b>",
+        "slogan": f"<b>{person.slogan}</b>",
+        "prof_experience": f"<b>{person.prof_experience}</b>",
+        "about": f"<b>{person.about}</b>",
+        "tags": f"<b>{person.tags}</b>"
     }
+
+    if role == "teacher":
+        data.update({"mission": f"<b>{person.mission}</b>"})
+    else:
+        data.update({"expectations": f"<b>{person.expectations}</b>"})
 
     if dialog_manager.dialog_data.get("edit_mode"):
         data.update({"edit_mode": True})
@@ -126,48 +143,59 @@ async def process_done(callback: CallbackQuery, button: Button, dialog_manager: 
 
     current_state = dialog_manager.current_context().state
 
-    row = dialog_manager.dialog_data.get("student").get("row")
+    row = dialog_manager.dialog_data.get("person").get("row")
+    role = dialog_manager.dialog_data.get("role", "student")
+    telegraph_status: bool = False
 
     match current_state:
 
         case EditMode.EDIT_NAME:
             column = 1
             value = "name"
+            telegraph_status = True
 
         case EditMode.EDIT_SLOGAN:
 
-            column = 7
+            column = 7 if role == "student" else 8
             value = "slogan"
 
         case EditMode.EDIT_PROF_EXPERIENCE:
-            column = 8
+            column = 8 if role == "student" else 5
             value = "prof_experience"
+            telegraph_status = True
 
         case EditMode.EDIT_ABOUT:
-            column = 9
+            column = 9 if role == "student" else 4
             value = "about"
+            telegraph_status = True
 
         case EditMode.EDIT_TAGS:
-            column = 11
+            column = 11 if role == "student" else 6
             value = "tags"
 
         case EditMode.EDIT_EXPECTATIONS:
             column = 14
             value = "expectations"
 
+        case EditMode.EDIT_MISSION:
+            column = 7
+            value = "mission"
+
         case _:
             pass
 
-            
     await update_cell_by_coordinates(
         config=config,
-        sheet_name=config.google.vitrina_tab,
+        role=role,
         column=column + 1,
         row=row,
-        value=dialog_manager.dialog_data.get("student").get(value)
+        value=dialog_manager.dialog_data.get("person").get(value)
     )
 
-    await dialog_manager.done(result={"student": dialog_manager.dialog_data.get("student")})
+    if telegraph_status:
+        update_telegraph_page(config, dialog_manager.dialog_data.get("person"), role)
+
+    await dialog_manager.done(result={"person": dialog_manager.dialog_data.get("person")})
 
 
 async def correct_input_handler(
@@ -197,10 +225,13 @@ async def correct_input_handler(
         case EditMode.EDIT_EXPECTATIONS:
             value = "expectations"
 
+        case EditMode.EDIT_MISSION:
+            value = "mission"
+
         case _:
             pass
 
-    dialog_manager.dialog_data["student"][value] = text
+    dialog_manager.dialog_data["person"][value] = text
     dialog_manager.dialog_data["edit_mode"] = True
 
 
@@ -214,30 +245,35 @@ dialog = Dialog(
     Window(
         Format("{edit_header}"),
 
-        Button(
-            Format("{edit_photo_btn}"), 
-            id=ButtonsId.EDIT_PHOTO_BTN_ID, 
-            on_click=start_edit_mode),
+        Row(
+            Button(
+                Format("{edit_name_btn}"), 
+                id=ButtonsId.EDIT_NAME_BTN_ID, 
+                on_click=start_edit_mode),
 
-        Button(
-            Format("{edit_name_btn}"), 
-            id=ButtonsId.EDIT_NAME_BTN_ID, 
-            on_click=start_edit_mode),
+            Button(
+                Format("{edit_photo_btn}"), 
+                id=ButtonsId.EDIT_PHOTO_BTN_ID, 
+                on_click=start_edit_mode),
+        ),
 
+        Row(
+            Button(
+                Format("{edit_about_btn}"), 
+                id=ButtonsId.EDIT_ABOUT_BTN_ID, 
+                on_click=start_edit_mode),
+
+            Button(
+                Format("{edit_prof_experience_btn}"), 
+                id=ButtonsId.EDIT_PROF_EXPERIENCE_BTN_ID, 
+                on_click=start_edit_mode),
+            
+        ),
         Button(
             Format("{edit_slogan_btn}"), 
             id=ButtonsId.EDIT_SLOGAN_BTN_ID, 
             on_click=start_edit_mode),
 
-        Button(
-            Format("{edit_prof_experience_btn}"), 
-            id=ButtonsId.EDIT_PROF_EXPERIENCE_BTN_ID, 
-            on_click=start_edit_mode),
-
-        Button(
-            Format("{edit_about_btn}"), 
-            id=ButtonsId.EDIT_ABOUT_BTN_ID, 
-            on_click=start_edit_mode),
 
         Button(
             Format("{edit_tags_btn}"), 
@@ -331,6 +367,18 @@ dialog = Dialog(
         BACK_DONE_BTNS,
         getter=getter_for_edition,
         state=EditMode.EDIT_EXPECTATIONS,
+    ),
+
+    Window(
+        Const("Текущая миссия:"),
+        Format("{mission}"),
+        TextInput(
+            id="mission_input",
+            on_success=correct_input_handler
+        ),
+        BACK_DONE_BTNS,
+        getter=getter_for_edition,
+        state=EditMode.EDIT_MISSION,
     ),
 
     getter=dialog_get_data,

@@ -21,7 +21,7 @@ def start_logging(time_zone):
     Formatter.converter = lambda *args: datetime.now(tz=tz).timetuple()
     basicConfig(
         filename=path_to_log_file,
-        level=DEBUG,  # Changed to DEBUG to see debug messages
+        level=WARNING, # DEBUG,  # Changed to DEBUG to see debug messages
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt='%Y-%m-%d %H:%M:%S'
         )
