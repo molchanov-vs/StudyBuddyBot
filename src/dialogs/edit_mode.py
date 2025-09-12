@@ -2,6 +2,8 @@ from typing import Any, TYPE_CHECKING
 
 import re
 
+import asyncio
+
 from aiogram import F
 from aiogram.types import CallbackQuery, Message
 from aiogram.enums import ContentType
@@ -11,7 +13,7 @@ from aiogram_dialog.widgets.kbd import Button, Row, Start, Back
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.input import TextInput, MessageInput, ManagedTextInput
 
-from ..utils.boarding_handlers import correct_name_handler, error_name_handler
+from ..utils.boarding_handlers import correct_name_handler, error_name_handler, download_photo
 from ..utils.utils import get_middleware_data
 
 from ..google_queries import update_cell_by_coordinates
@@ -235,6 +237,27 @@ async def correct_input_handler(
     dialog_manager.dialog_data["edit_mode"] = True
 
 
+async def handle_photo(
+    message: Message, 
+    widget: MessageInput, 
+    dialog_manager: DialogManager):
+
+
+    bot, _, used_data = get_middleware_data(dialog_manager)
+
+    if not message.photo:
+        await message.answer(text='❗Это должна быть фотография')
+        await asyncio.sleep(1)
+        return
+
+    await download_photo(message, dialog_manager)
+
+    await message.answer(text='✅ Фотография успешно загружена')
+    await asyncio.sleep(1)
+
+    await dialog_manager.start(Flow.MENU, mode=StartMode.RESET_STACK)
+
+
 BACK_DONE_BTNS = Row(
     Back(Format("{back_btn}")),
     Button(Format("{done_btn}"), id="done_btn_id", on_click=process_done, when="edit_mode")
@@ -306,6 +329,17 @@ dialog = Dialog(
         BACK_DONE_BTNS,
         getter=getter_for_edition,
         state=EditMode.EDIT_NAME,
+    ),
+
+    Window(
+        Const("Загрузите новую фотографию:"),
+        MessageInput(
+            func=handle_photo,
+            content_types= ContentType.PHOTO
+        ),
+        Back(Format("{back_btn}")),
+        getter=getter_for_edition,
+        state=EditMode.EDIT_PHOTO,
     ),
 
     Window(

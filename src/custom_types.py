@@ -68,7 +68,7 @@ class Person(BaseModel):
         ]
         
         if filtered_images:
-            self.image_path = filtered_images[-1]
+            self.image_path = sorted(filtered_images)[-1]
         else:
             self.image_path = None
 
