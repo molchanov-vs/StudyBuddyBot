@@ -95,8 +95,8 @@ def load_config() -> Config:
     # Select the appropriate bot configuration
     if bot_config == 'bot_test':
         # Use bot_test configuration for development
-        config_data['bot'] = config_data['bot_test']
-        print(f"Using development bot configuration: {config_data['bot_test']['name']}")
+        config_data['bot'] = config_data['bot']
+        print(f"Using development bot configuration: {config_data['bot']['name']}")
     else:
         # Use bot configuration for production
         print(f"Using production bot configuration: {config_data['bot']['name']}")

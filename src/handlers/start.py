@@ -47,7 +47,7 @@ WARNING_MESSAGE = """
 @router.message(CommandStart())
 async def process_start(message: Message, dialog_manager: DialogManager) -> None:
 
-    bot, _, user_data = get_middleware_data(dialog_manager)
+    bot, config, user_data = get_middleware_data(dialog_manager)
 
     log_message = f"Bot is starting for {user_data.id} ({user_data.full_name})"
     logging.warning(log_message)
@@ -58,7 +58,10 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
     
         await add_action(dialog_manager, Action.START)
 
-        await start_dialog(dialog_manager, Flow.MENU)
+        if user_data.id in config.superadmins.ids:
+            await start_dialog(dialog_manager, Admin.MAIN)
+        else:
+            await start_dialog(dialog_manager, Flow.MENU)
 
     else:
         await bot.send_message(chat_id=user_data.id, text=WARNING_MESSAGE)

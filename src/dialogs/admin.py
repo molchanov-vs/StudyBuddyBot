@@ -59,18 +59,23 @@ async def get_last_users(
     for user_id in users_id:
 
         user_raw_data = await users.redis.lindex(user_id, 0)
-        user_data: UserData = UserData.model_validate_json(user_raw_data)
-            
-        if st == "old":
-            user_action_data = await users.redis.lindex(f"{user_id}_a", 0)
-            try:
-                user_action: UserAction = UserAction.model_validate_json(user_action_data)
-                user_data.date = user_action.date
-            except:
-                logging.warning(f"CHECK redis: {user_action_data}")
 
-        
-        users_data.append(user_data)
+        if user_raw_data:
+            user_data: UserData = UserData.model_validate_json(user_raw_data)
+                
+            if st == "old":
+                user_action_data = await users.redis.lindex(f"{user_id}_a", 0)
+                try:
+                    user_action: UserAction = UserAction.model_validate_json(user_action_data)
+                    user_data.date = user_action.date
+                except:
+                    logging.warning(f"CHECK redis: {user_action_data}")
+
+            
+            users_data.append(user_data)
+
+        else:
+            logging.warning(f"User {user_id} not found")
 
 
     # Sort users by the 'date' field (assuming ISO format) in descending order
@@ -90,6 +95,7 @@ async def get_last_users(
         "status": status,
         "users": f"👤 Users: {len(users_id)}"
         }
+
 
 async def dialog_get_data(
         dialog_manager: DialogManager,

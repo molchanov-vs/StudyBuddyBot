@@ -5,7 +5,6 @@ import subprocess
 import os
 
 from aiogram import Bot, Dispatcher
-import redis.asyncio as redis
 
 from src.config import load_config, Config
 from src.setups import setup_bot, setup_dispathcer

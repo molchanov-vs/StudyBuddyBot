@@ -44,6 +44,8 @@ async def dialog_get_data(
         dialog_manager: DialogManager,
         **kwargs):
 
+    role = dialog_manager.dialog_data.get("role", "student")
+
     data: dict[str, str] = {}
     data.update({
         "edit_header": i18n.edit.edit_header(),
@@ -57,6 +59,7 @@ async def dialog_get_data(
         "edit_mission_btn": i18n.edit.edit_mission_btn(),
         "done_btn": i18n.service.done_btn(),
         "back_btn": i18n.service.back_btn(),
+        "role": role,
     })
 
     return data
@@ -125,7 +128,7 @@ async def getter_for_edition(dialog_manager: DialogManager, **kwargs):
         "slogan": f"<b>{person.slogan}</b>",
         "prof_experience": f"<b>{person.prof_experience}</b>",
         "about": f"<b>{person.about}</b>",
-        "tags": f"<b>{person.tags}</b>"
+        "tags": f"<b>#{' #'.join(person.tags)}</b>"
     }
 
     if role == "teacher":
@@ -292,10 +295,19 @@ dialog = Dialog(
                 on_click=start_edit_mode),
             
         ),
-        Button(
-            Format("{edit_slogan_btn}"), 
-            id=ButtonsId.EDIT_SLOGAN_BTN_ID, 
-            on_click=start_edit_mode),
+
+        Row(
+            Button(
+                Format("{edit_slogan_btn}"), 
+                id=ButtonsId.EDIT_SLOGAN_BTN_ID, 
+                on_click=start_edit_mode),
+
+            Button(
+                Format("{edit_mission_btn}"), 
+                id=ButtonsId.EDIT_MISSION_BTN_ID, 
+                on_click=start_edit_mode,
+                when=F["role"] == "teacher"),
+        ),
 
 
         Button(
@@ -306,7 +318,8 @@ dialog = Dialog(
         Button(
             Format("{edit_expectations_btn}"), 
             id=ButtonsId.EDIT_EXPECTATIONS_BTN_ID, 
-            on_click=start_edit_mode),
+            on_click=start_edit_mode,
+            when=F["role"] == "student"),
 
         Start(
             Format("{back_btn}"),

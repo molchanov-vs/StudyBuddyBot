@@ -48,9 +48,8 @@ async def setup_bot(config: Config) -> Bot:
         BotCommand(command='/start', description='🚀 Start')
         ]
 
-    if os.getenv('DEVELOPMENT', 'false').lower() == 'true':
-        await bot.set_my_commands(main_menu_commands)
-        await bot.delete_webhook(drop_pending_updates=True)
+    await bot.set_my_commands(main_menu_commands)
+    await bot.delete_webhook(drop_pending_updates=True)
 
     return bot
 

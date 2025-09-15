@@ -73,7 +73,7 @@ async def get_persons(
     persons: list[Student | Teacher] = prepare_list_of_persons(dialog_manager)
 
     persons_list: list[tuple[str, int]] = [
-        (f"{person.name} ⭐" if person.id == user_data.id else person.name, 
+        (f"⭐ {person.name}" if person.id == user_data.id else person.name, 
         int(person.id)) for person in persons
     ]
 
