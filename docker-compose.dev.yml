@@ -25,7 +25,6 @@ services:
       - ./scripts:/app/scripts
       - ./bot.py:/app/bot.py
       - ./config.yaml:/app/config.yaml
-      - ./src/locales:/app/src/locales
       - ./logs_test:/app/logs
       - ./media:/app/media
       - ./studybuddybot-471111-f80d6e34ca47.json:/app/studybuddybot-471111-f80d6e34ca47.json

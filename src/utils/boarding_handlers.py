@@ -7,6 +7,7 @@ import aiofiles
 
 from aiogram.types import CallbackQuery, Message
 from aiogram.enums import ContentType
+from aiogram.fsm.storage.redis import RedisStorage
 
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
@@ -16,6 +17,7 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from .utils import get_middleware_data
 from my_tools import get_datetime_now, DateTimeKeys
 
+from ..enums import RedisKeys, Database
 from ..states import Onboarding
 from .utils import get_middleware_data, determine_russian_name_gender
 from .face_handlers import analyze_face_in_image
@@ -142,6 +144,13 @@ async def text_input_handler(
 
     _, _, user_data = get_middleware_data(dialog_manager)
 
+    widget_id = widget.widget_id
+
+    if str(widget_id) == "11":
+        logging.warning(f"Removing user {user_data.id} from for onboarding")
+        users_storage: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
+        await users_storage.redis.srem(RedisKeys.FOR_ONBOARDING, user_data.id)
+
     await add_action(dialog_manager)
     await write_txt_file(text, user_data.id, widget.widget.widget_id)
 
@@ -187,6 +196,11 @@ async def handle_voice_and_video_note(message: Message, widget: MessageInput, di
 
     date: str = get_datetime_now(DateTimeKeys.DEFAULT)
     widget_id = widget.widget_id
+
+    if str(widget_id) == "11":
+        logging.warning(f"Removing user {user_data.id} from for onboarding")
+        users_storage: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
+        await users_storage.redis.srem(RedisKeys.FOR_ONBOARDING, user_data.id)
 
     if message.voice:
         if message.voice.file_size <= MAX_BYTES:
@@ -276,13 +290,13 @@ async def handle_photo(
         await asyncio.sleep(1)
         return
 
-    success, error_message, _ = await analyze_face_in_image(
-        bot, message.photo[-1].file_id, used_data.id)
+    # success, error_message, _ = await analyze_face_in_image(
+    #     bot, message.photo[-1].file_id, used_data.id)
     
-    if not success:
-        await message.answer(text=error_message)
-        await asyncio.sleep(1)
-        return
+    # if not success:
+    #     await message.answer(text=error_message)
+    #     await asyncio.sleep(1)
+    #     return
 
     await add_action(dialog_manager)
 

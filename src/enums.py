@@ -46,3 +46,4 @@ class RedisKeys(str, Enum):
     KNOWN_USERS = "known_users"
     TEACHERS = "teachers"
     STUDENTS = "students"
+    FOR_ONBOARDING = "for_onboarding"

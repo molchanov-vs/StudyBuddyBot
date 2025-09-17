@@ -54,17 +54,33 @@ async def process_start(message: Message, dialog_manager: DialogManager) -> None
 
     users_storage: RedisStorage = dialog_manager.middleware_data.get(Database.USERS)
 
-    if await users_storage.redis.sismember(RedisKeys.KNOWN_USERS, user_data.id):
-    
+    # Check if user is in for onboarding
+    if await users_storage.redis.sismember(RedisKeys.FOR_ONBOARDING, user_data.id):
+
         await add_action(dialog_manager, Action.START)
 
-        if user_data.id in config.superadmins.ids:
-            await start_dialog(dialog_manager, Admin.MAIN)
+        await users_storage.redis.sadd(RedisKeys.STUDENTS, user_data.id)
+
+        current_state = get_current_state(dialog_manager, config, user_data.id)
+        if current_state not in Onboarding.__state_names__:
+            _state = Onboarding.WELCOME
         else:
-            await start_dialog(dialog_manager, Flow.MENU)
+            _state = current_state
+        await start_dialog(dialog_manager, _state)
 
     else:
-        await bot.send_message(chat_id=user_data.id, text=WARNING_MESSAGE)
+
+        if await users_storage.redis.sismember(RedisKeys.KNOWN_USERS, user_data.id):
+
+            await add_action(dialog_manager, Action.START)
+
+            if user_data.id in config.superadmins.ids:
+                await start_dialog(dialog_manager, Admin.MAIN)
+            else:
+                await start_dialog(dialog_manager, Flow.MENU)
+
+        else:
+            await bot.send_message(chat_id=user_data.id, text=WARNING_MESSAGE)
 
 
 @router.message(F.forward_from)

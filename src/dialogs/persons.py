@@ -233,7 +233,7 @@ dialog = Dialog(
             ),
             width=1,
             height=5,
-            id="person_croll_list_id",
+            id="person_croll_list_id",do
             back_btn="◀️",
             forward_btn="▶️",
             back_btn_text="Назад"
